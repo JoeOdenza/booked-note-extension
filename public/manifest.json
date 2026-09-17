@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Click to run",
+  "description": "Runs a script when the user clicks the action toolbar icon.",
+  "version": "1.0",
+  "icons": {
+    "16": "extension.png",
+    "32": "extension.png",
+    "48": "extension.png",
+    "128": "extension.png"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {},
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": ["scripting", "activeTab", "storage", "sidePanel"],
+  "host_permissions": ["<all_urls>"]
+}

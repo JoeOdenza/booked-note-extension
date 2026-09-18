@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { FIELD_SCHEMA } from "./schema"
-import FieldRow from "./FieldRow"
+import Header from "./components/Header"
+import LayoutPanel from "./components/LayoutPanel"
+import FieldsPanel from "./components/FieldsPanel"
 
 async function getActiveTab() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -9,7 +11,7 @@ async function getActiveTab() {
 
 async function ensureContentScript(tabId) {
     await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId, allFrames: true },
         files: ["content.js"]
     })
 }
@@ -23,6 +25,7 @@ export default function App() {
     const [draftLayout, setDraftLayout] = useState({})
     const [layoutNameDraft, setLayoutNameDraft] = useState("")
     const [status, setStatus] = useState("")
+    const [hasHighlights, setHasHighlights] = useState(false)
 
     const modeRef = useRef(mode)
     useEffect(() => {
@@ -43,6 +46,7 @@ export default function App() {
 
             if (message.type === "LAYOUT_APPLIED") {
                 setFieldValues((prev) => ({ ...prev, ...message.results }))
+                setHasHighlights(true)
             }
         }
 
@@ -75,6 +79,17 @@ export default function App() {
             await chrome.tabs.sendMessage(tab.id, { type: "APPLY_LAYOUT", layout })
         } catch (error) {
             setStatus(`Apply layout failed: ${error.message}`)
+        }
+    }
+
+    async function handleClearHighlights() {
+        try {
+            const tab = await getActiveTab()
+            await ensureContentScript(tab.id)
+            await chrome.tabs.sendMessage(tab.id, { type: "CLEAR_HIGHLIGHTS" })
+            setHasHighlights(false)
+        } catch (error) {
+            setStatus(`Clear highlight failed: ${error.message}`)
         }
     }
 
@@ -133,94 +148,40 @@ export default function App() {
     }
 
     const isIdle = mode === "idle"
+    const paymentCount = Number(fieldValues.paymentCount) || 0
 
     return (
         <>
-            <header>
-                <h1>BookedNotes</h1>
-            </header>
+            <Header />
 
-            <section className="panel">
-                <h2>Layout</h2>
+            <LayoutPanel
+                layouts={layouts}
+                selectedLayout={selectedLayout}
+                onSelectedLayoutChange={setSelectedLayout}
+                isIdle={isIdle}
+                hasHighlights={hasHighlights}
+                onApply={applyLayout}
+                onDelete={handleDeleteLayout}
+                onClearHighlights={handleClearHighlights}
+                mode={mode}
+                layoutNameDraft={layoutNameDraft}
+                onLayoutNameDraftChange={setLayoutNameDraft}
+                onNewLayout={handleNewLayout}
+                onStartLayout={handleStartLayout}
+                onSaveLayout={handleSaveLayout}
+                onCancelLayout={handleCancelLayout}
+                draftLayoutName={draftLayoutName}
+                status={status}
+            />
 
-                <div className="layoutRow">
-                    <select
-                        value={selectedLayout}
-                        disabled={!isIdle}
-                        onChange={(e) => setSelectedLayout(e.target.value)}
-                    >
-                        <option value="">-- Select Layout --</option>
-                        {Object.keys(layouts).map((name) => (
-                            <option key={name} value={name}>{name}</option>
-                        ))}
-                    </select>
-                    <button
-                        className="primary"
-                        disabled={!isIdle}
-                        onClick={() => selectedLayout && applyLayout(selectedLayout)}
-                    >
-                        Apply
-                    </button>
-                    <button className="danger" disabled={!isIdle} onClick={handleDeleteLayout}>
-                        Delete
-                    </button>
-                </div>
-
-                <div className="layoutRow">
-                    {mode === "idle" && (
-                        <button onClick={handleNewLayout}>+ New Layout</button>
-                    )}
-
-                    {mode === "naming" && (
-                        <>
-                            <input
-                                type="text"
-                                placeholder="Layout name"
-                                value={layoutNameDraft}
-                                autoFocus
-                                onChange={(e) => setLayoutNameDraft(e.target.value)}
-                            />
-                            <button className="primary" onClick={handleStartLayout}>
-                                Start Selecting Fields
-                            </button>
-                            <button onClick={handleCancelLayout}>Cancel</button>
-                        </>
-                    )}
-
-                    {mode === "creating" && (
-                        <>
-                            <button className="primary" onClick={handleSaveLayout}>Save Layout</button>
-                            <button onClick={handleCancelLayout}>Cancel</button>
-                        </>
-                    )}
-                </div>
-
-                {mode === "creating" && (
-                    <p id="layoutStatus">
-                        Creating layout &quot;{draftLayoutName}&quot; -- click Scan next to each field, then Save Layout.
-                    </p>
-                )}
-                {mode !== "creating" && status && <p id="layoutStatus">{status}</p>}
-            </section>
-
-            <section className="panel">
-                <div className="sectionHeader">
-                    <h2>Fields</h2>
-                    <button onClick={handleReset}>Reset</button>
-                </div>
-
-                <div id="fields">
-                    {FIELD_SCHEMA.map((field) => (
-                        <FieldRow
-                            key={field.key}
-                            field={field}
-                            value={fieldValues[field.key] || ""}
-                            onChange={(value) => handleFieldChange(field.key, value)}
-                            onScan={() => startScanning(field.key)}
-                        />
-                    ))}
-                </div>
-            </section>
+            <FieldsPanel
+                fields={FIELD_SCHEMA}
+                fieldValues={fieldValues}
+                paymentCount={paymentCount}
+                onFieldChange={handleFieldChange}
+                onScan={startScanning}
+                onReset={handleReset}
+            />
         </>
     )
 }

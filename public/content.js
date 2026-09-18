@@ -3,16 +3,21 @@
     window.__pickerContentLoaded = true
 
     const HIGHLIGHT_CLASS = 'picker-highlight'
+    const APPLIED_CLASS = 'picker-applied-highlight'
     const style = document.createElement('style')
 
     //Create style element with class and highlight css
-    style.textContent = `.${HIGHLIGHT_CLASS} { outline: 2px solid #ff5722 !important; cursor: crosshair !important; }`
+    style.textContent = `
+        .${HIGHLIGHT_CLASS} { outline: 2px solid #ff5722 !important; cursor: crosshair !important; }
+        .${APPLIED_CLASS} { outline: 2px solid #2e7d32 !important; box-shadow: inset 0 0 0 2px #2e7d32 !important; background-color: rgba(76, 175, 80, 0.15) !important; }
+    `
 
     //Append it to the head of the document
     document.head.appendChild(style)
 
     let hovered = null
     let activeKey = null
+    let appliedElements = []
 
     function onMouseOver(e) {
         //previous dom element, remove the highlight class when you mouse over something else
@@ -87,14 +92,33 @@
         }
 
         if (message.type === "APPLY_LAYOUT") {
+            clearAppliedHighlights()
+
+            // Re-append so our rules stay last in cascade order, in case the page
+            // has injected its own <style> tags (common in SPAs) since we loaded
+            document.head.appendChild(style)
+
             const results = {}
             for (const [key, selector] of Object.entries(message.layout)) {
                 const el = document.querySelector(selector)
                 if (el) {
                     results[key] = el.innerText || el.textContent.trim()
+                    el.classList.add(APPLIED_CLASS)
+                    appliedElements.push(el)
                 }
             }
             chrome.runtime.sendMessage({ type: "LAYOUT_APPLIED", results })
         }
+
+        if (message.type === "CLEAR_HIGHLIGHTS") {
+            clearAppliedHighlights()
+        }
     })
+
+    function clearAppliedHighlights() {
+        for (const el of appliedElements) {
+            el.classList.remove(APPLIED_CLASS)
+        }
+        appliedElements = []
+    }
 })()

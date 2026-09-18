@@ -3,7 +3,7 @@ import PaymentFields from "./PaymentFields"
 import type { Field, FieldValues } from "@/types"
 
 interface FieldsPanelProps {
-    fields: Field[]
+    fields: readonly Field[]
     fieldValues: FieldValues
     paymentCount: number
     onFieldChange: (key: string, value: string) => void

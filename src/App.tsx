@@ -4,7 +4,7 @@ import Header from "./components/Header"
 import LayoutPanel from "./components/LayoutPanel"
 import FieldsPanel from "./components/FieldsPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getActiveTab, fillBookedNote } from "./scripting"
+import { getActiveTab, fillBookedNote, computeBookedNoteFieldsFromLocalStore } from "./scripting"
 import type { FieldValues, Layout, Layouts, Mode, StorageShape, TabKey } from "./types"
 
 
@@ -215,17 +215,22 @@ export default function App() {
                 status={status}
             />
 
-            <button onClick={async () => await fillBookedNote({ kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD" })}>Fill BookNote</button>
+            <button onClick={async () => {
+                await fillBookedNote({
+                    kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD"
+                });
+                await computeBookedNoteFieldsFromLocalStore('RCI', 200);
+            }}>Fill BookNote</button>
             {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
 
             <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-            <TabsList>
-                <TabsTrigger value="reservations">Reservations</TabsTrigger>
-                <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
-                <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
-            </TabsList>
-            <TabsContent value="reservations">Make changes to your account here.</TabsContent>
-            <TabsContent value="odenzareg">Change your password here.</TabsContent>
+                <TabsList>
+                    <TabsTrigger value="reservations">Reservations</TabsTrigger>
+                    <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
+                    <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
+                </TabsList>
+                <TabsContent value="reservations">Make changes to your account here.</TabsContent>
+                <TabsContent value="odenzareg">Change your password here.</TabsContent>
             </Tabs>
 
             <FieldsPanel

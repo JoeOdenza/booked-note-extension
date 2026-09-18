@@ -216,7 +216,8 @@ export default function App() {
                 status={status}
             />
 
-            <button onClick={async () => await fillBookedNote({profitAndLoss: -123, paymentCurrency: "CAD"})}>Fill BookNote</button>
+            <button onClick={async () => await fillBookedNote({ kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD" })}>Fill BookNote</button>
+            {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
 
             <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
             <TabsList>

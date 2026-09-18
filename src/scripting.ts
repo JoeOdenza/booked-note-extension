@@ -170,31 +170,43 @@ export const PAYMENT_CURRENCY = {
 export type FulfillmentType = typeof FULFILLMENT_TYPE[keyof typeof FULFILLMENT_TYPE]
 export type PaymentCurrency = typeof PAYMENT_CURRENCY[keyof typeof PAYMENT_CURRENCY]
 
-interface FillBookedNoteArgs {
-    profitAndLoss: number | string
-    fulfillmentType?: FulfillmentType
+interface FillBookedNoteLossArgs {
+    kind: "loss"
+    lossAmount: number
+    fulfillmentType: FulfillmentType
     paymentCurrency: PaymentCurrency
 }
 
-export async function fillBookedNote({
-    profitAndLoss,
-    fulfillmentType,
-    paymentCurrency
-}: FillBookedNoteArgs) {
+interface FillBookedNoteProfitArgs {
+    kind: "profit"
+    profitAmount: number
+    paymentCurrency: PaymentCurrency
+}
+
+type FillBookedNoteArgs = FillBookedNoteLossArgs | FillBookedNoteProfitArgs
+
+export async function fillBookedNote(args: FillBookedNoteArgs) {
+    const { paymentCurrency } = args
     const tab = await getActiveTab();
     const tabId = tab.id!;
-    const pnl = Number(profitAndLoss);
+
+    const pnl = args.kind === "loss" ? -Math.abs(args.lossAmount) : Math.abs(args.profitAmount)
 
     await setInputValue(tabId, "#txtBookingPL", pnl);
     await setInputValue(tabId, "#txtInHouseCharges", "123");
 
-    if (pnl >= 0) {
-        await setSelectValue(tabId, "#dropBookingFulfillment", "NO", "text");
-    } else if (pnl < 0) {
-        await setSelectValue(tabId, "#dropBookingFulfillment", "YES", "text");
-        await setSelectValue(tabId, "#dropfulfillmentType", fulfillmentType ?? "", "text");
-    } else {
-        console.log("Invalid profitAndLoss found")
+    switch (args.kind) {
+        case "loss":
+            await setSelectValue(tabId, "#dropBookingFulfillment", "YES", "text");
+            await setSelectValue(tabId, "#dropfulfillmentType", args.fulfillmentType, "text");
+            break
+        case "profit":
+            await setSelectValue(tabId, "#dropBookingFulfillment", "NO", "text");
+            break
+        default: {
+            const exhaustive: never = args
+            throw new Error(`Unhandled fillBookedNote args: ${JSON.stringify(exhaustive)}`)
+        }
     }
 
     await setSelectValue(tabId, "#grdVendor_ctl02_drpCurrVendor", paymentCurrency, "text");

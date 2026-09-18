@@ -15,6 +15,8 @@ export type Mode = "idle" | "naming" | "creating"
 
 export type TabKey = "reservations" | "odenzareg" | "additional_bookednote_fields"
 
+export type ResCardTabKey = "resCard" | "reservations" | "additionalTravler"
+
 export type LayoutsByTab = Record<TabKey, Layouts>
 export type LayoutDataByTab = Record<TabKey, LayoutData>
 

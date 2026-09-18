@@ -215,6 +215,41 @@ button.danger:hover {
     min-width: 0;
 }
 
+.resCardFields {
+    margin-top: 12px;
+}
+
+.resCardFields > .fieldRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.resCardFields > .fieldRow:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.resCardFields label {
+    width: 110px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.resCardFields input {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    color: var(--text-muted);
+}
+
+.resCardFields button {
+    flex-shrink: 0;
+    min-width: 60px;
+}
+
 #paymentFields {
     display: flex;
     flex-direction: column;

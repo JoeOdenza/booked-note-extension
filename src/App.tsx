@@ -438,8 +438,8 @@ export default function App() {
         <>
             <Header />
 
-            <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as "bookedNote" | "resCard")} className="w-[400px]">
-                <TabsList>
+            <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as "bookedNote" | "resCard")} className="w-[400px] mx-auto">
+                <TabsList className="mx-auto">
                     <TabsTrigger value="bookedNote">Booked Note</TabsTrigger>
                     <TabsTrigger value="resCard">Res Card</TabsTrigger>
                 </TabsList>
@@ -516,7 +516,7 @@ export default function App() {
                 </TabsContent>
 
                 <TabsContent value="resCard">
-                    <ResCard />
+                    <ResCard reservations={reservations} activeReservationId={activeReservationId} />
                 </TabsContent>
             </Tabs>
         </>

@@ -2,7 +2,7 @@ import FieldRow from "./FieldRow"
 import type { Field, FieldValues } from "@/types"
 
 interface FieldListProps {
-    fields: Field[]
+    fields: readonly Field[]
     fieldValues: FieldValues
     onFieldChange: (key: string, value: string) => void
     onScan: (key: string) => void

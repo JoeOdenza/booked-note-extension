@@ -1,7 +1,7 @@
 import type { Field, TabKey } from "./types"
 
 // Unused - For individual reservations later
-export const INDIVIDUAL_RESERVATION_SCHEMA: Field[] = [
+export const INDIVIDUAL_RESERVATION_SCHEMA = [
     { key: "vendor_name", label: "Vendor Name"},
     { key: "confirmation_no", label: "Confirmation Number" },
     { key: "name", label: "Name"},
@@ -16,7 +16,7 @@ export const INDIVIDUAL_RESERVATION_SCHEMA: Field[] = [
     { key: "currency", label: "Currency", type: "select", options: ["CAD", "USD"]},
     { key: "grossOrNet", label: "Gross Or Net", type: "select", options: ["Gross", "Net"]},
     { key: "paymentCount", label: "Payment Count", type: "select", options: [1, 2, 3, 4, 5]}
-]
+] as const satisfies Field[]
 
 // Payment type options for each dynamic payment box (driven by Payment Count)
 export const PAYMENT_TYPE_OPTIONS: string[] = [
@@ -45,7 +45,7 @@ export const PAYMENT_TYPE_EXTRA_FIELDS: Record<string, Field[]> = {
 }
 
 // For Odenza Reg - extract all information that's static about guests
-export const ODENZA_REG_SCHEMA: Field[] = [
+export const ODENZA_REG_SCHEMA = [
     { key: "agent", label: "Agent"},
     { key: "certificate_code", label: "Certificate Code"},
     { key: "merchant_code", label: "Merchant Code"},
@@ -63,16 +63,16 @@ export const ODENZA_REG_SCHEMA: Field[] = [
     { key: "guest_country", label: "Guest Country"},
     { key: "guest_phone_number", label: "Guest Phone Number"},
     { key: "guest_email", label:"Guest Email"}
-]
+] as const satisfies Field[]
 
 // Used by default for now, will utilize other schemas when I implement the tabs
-export const ADDITIONAL_FIELD_SCHEMA: Field[] = [
+export const ADDITIONAL_FIELD_SCHEMA = [
 
     { key: "added_guest_cc", label: "Added Guest Credit Card?", type: "checkbox"},
     { key: "guest_deposit", label: "Guest Deposit"},
     { key: "guest_in_house_charges", label: "Guest Inhouse Charges"},
     { key: "additional_travelers_num", label: "Additional Travelers Count", type:"select", options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
-]
+] as const satisfies Field[]
 
 export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
     { key: "add_first_name", label: "First Name"},
@@ -81,12 +81,28 @@ export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
     { key: "add_dob", label: "Date of Birth"},
     { key: "add_relation", label: "Relationship to Main Guest"},
     { key: "add_citizenship", label: "Citizenship"}
-]
+] as const satisfies Field[]
 
-export const SCHEMA_BY_TAB: Record<TabKey, Field[]> = {
+export const SCHEMA_BY_TAB: Record<TabKey, readonly Field[]> = {
     reservations : INDIVIDUAL_RESERVATION_SCHEMA,
     odenzareg: ODENZA_REG_SCHEMA,
     additional_bookednote_fields: ADDITIONAL_FIELD_SCHEMA
 }
+
+// Every schema, named -- the source of truth for both SCHEMA_BY_TAB and the
+// schema-qualified field key type below, so a new schema only needs to be added here.
+export const SCHEMAS = {
+    fieldSchema: ADDITIONAL_FIELD_SCHEMA,
+    odenzaReg: ODENZA_REG_SCHEMA,
+    individualReservation: INDIVIDUAL_RESERVATION_SCHEMA
+} as const
+
+export type SchemaName = keyof typeof SCHEMAS
+
+// "schemaName.fieldKey", e.g. "individualReservation.base_cost" -- scopes each key to the
+// schema it actually belongs to, so a key from one schema can't be mistaken for another's.
+export type QualifiedFieldKey = {
+    [S in SchemaName]: `${S}.${(typeof SCHEMAS)[S][number]["key"]}`
+}[SchemaName]
 
 

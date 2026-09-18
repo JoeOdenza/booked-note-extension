@@ -1,6 +1,20 @@
+import type { QualifiedFieldKey } from "./schema"
+import type { StorageShape } from "./types"
+
 export async function getActiveTab(): Promise<chrome.tabs.Tab> {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     return tab
+}
+
+// Field values are saved per-layout under the "layoutData" storage key
+// (see App.tsx's fieldValues-sync effect): layoutData[layoutName][fieldKey]. Storage itself
+// doesn't track which schema a layout was built from -- qualifiedKey ("schemaName.fieldKey")
+// exists purely so the caller has to name the schema they believe applies, catching the case
+// where you meant e.g. individualReservation.base_cost but typo'd/picked a key from another schema.
+export async function getFromLocalStore(layoutName: string, qualifiedKey: QualifiedFieldKey): Promise<string | undefined> {
+    const key = qualifiedKey.split(".")[1]
+    const stored = await chrome.storage.local.get<StorageShape>("layoutData")
+    return stored.layoutData?.[layoutName]?.[key]
 }
 
 // Sets an input's value on the page and fires the events the page's own JS listens for.
@@ -215,4 +229,28 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
     await setSelectValue(tabId, "#grdVendor_ctl02_grdPayment_ctl02_drpCurr", paymentCurrency, "text");
 
     await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", "06/06/2026")
+}
+
+export async function computeBookedNoteFieldsFromLocalStore(layoutName: string, customerPayment: number) {
+    const totalCostRaw = await getFromLocalStore(layoutName, "individualReservation.total_cost")
+    const commissionRaw = await getFromLocalStore(layoutName, "individualReservation.commission")
+    const totalCost = Number(totalCostRaw)
+    const commission = Number(commissionRaw ?? 0)
+
+    // Raw payment/cost difference before commission -- positive means the customer paid
+    // more than the cost, negative means a shortfall.
+    const diff = customerPayment - totalCost
+
+    // Commission always factors into profit and loss, whichever way diff goes.
+    const profitAndLoss = diff + commission
+
+    // On a shortfall, the markup is however much of that shortfall the commission can
+    // cover (negative): fully covered -> the shortfall itself, otherwise capped at
+    // -commission since that's all there is to cover it with.
+    const agentMarkup = diff >= 0 ? diff : -Math.min(Math.abs(diff), commission)
+
+    console.log('computing');
+    console.log({ totalCost, commission, customerPayment, diff, profitAndLoss, agentMarkup })
+
+    return { profitAndLoss, agentMarkup }
 }

@@ -232,8 +232,8 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
 }
 
 export async function computeBookedNoteFieldsFromLocalStore(layoutName: string, customerPayment: number) {
-    const totalCostRaw = await getFromLocalStore(layoutName, "fieldSchema.total_cost")
-    const commissionRaw = await getFromLocalStore(layoutName, "fieldSchema.commission")
+    const totalCostRaw = await getFromLocalStore(layoutName, "individualReservation.total_cost")
+    const commissionRaw = await getFromLocalStore(layoutName, "individualReservation.commission")
     const totalCost = Number(totalCostRaw)
     const commission = Number(commissionRaw ?? 0)
 

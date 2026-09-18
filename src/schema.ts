@@ -72,7 +72,7 @@ export const ADDITIONAL_FIELD_SCHEMA = [
     { key: "guest_deposit", label: "Guest Deposit"},
     { key: "guest_in_house_charges", label: "Guest Inhouse Charges"},
     { key: "additional_travelers_num", label: "Additional Travelers Count", type:"select", options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
-]
+] as const satisfies Field[]
 
 export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
     { key: "add_first_name", label: "First Name"},
@@ -92,7 +92,7 @@ export const SCHEMA_BY_TAB: Record<TabKey, readonly Field[]> = {
 // Every schema, named -- the source of truth for both SCHEMA_BY_TAB and the
 // schema-qualified field key type below, so a new schema only needs to be added here.
 export const SCHEMAS = {
-    fieldSchema: FIELD_SCHEMA,
+    fieldSchema: ADDITIONAL_FIELD_SCHEMA,
     odenzaReg: ODENZA_REG_SCHEMA,
     individualReservation: INDIVIDUAL_RESERVATION_SCHEMA
 } as const

@@ -196,6 +196,19 @@ export default function App() {
         <>
             <Header />
 
+            <button onClick={async () => await fillBookedNote({ kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD" })}>Fill BookNote</button>
+            {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
+
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
+            <TabsList>
+                <TabsTrigger value="reservations">Reservations</TabsTrigger>
+                <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
+                <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
+            </TabsList>
+            <TabsContent value="reservations">Make changes to your account here.</TabsContent>
+            <TabsContent value="odenzareg">Change your password here.</TabsContent>
+            </Tabs>
+
             <LayoutPanel
                 layouts={layouts}
                 selectedLayout={selectedLayout}
@@ -215,19 +228,6 @@ export default function App() {
                 draftLayoutName={draftLayoutName}
                 status={status}
             />
-
-            <button onClick={async () => await fillBookedNote({ kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD" })}>Fill BookNote</button>
-            {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
-
-            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-            <TabsList>
-                <TabsTrigger value="reservations">Reservations</TabsTrigger>
-                <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
-                <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
-            </TabsList>
-            <TabsContent value="reservations">Make changes to your account here.</TabsContent>
-            <TabsContent value="odenzareg">Change your password here.</TabsContent>
-            </Tabs>
 
             <FieldsPanel
                 fields={activeSchema}

@@ -289,8 +289,6 @@ export default function App() {
                 status={status}
             />
 
-<<<<<<< HEAD
-=======
             <button onClick={async () => {
                 await fillBookedNote({
                     kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD"
@@ -309,7 +307,6 @@ export default function App() {
                 <TabsContent value="odenzareg">Change your password here.</TabsContent>
             </Tabs>
 
->>>>>>> 2103ffe992e16d9260e69bea796bcfa0f3d988b0
             <FieldsPanel
                 fields={activeSchema}
                 fieldValues={fieldValues}

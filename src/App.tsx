@@ -346,6 +346,7 @@ export default function App() {
         // the saved layouts (selector mappings) alone -- those are reusable templates, not data
         await chrome.storage.local.set({ layoutData: {} })
         await queueReservationsUpdate(() => ({}))
+        await chrome.storage.local.set({ resCardFieldValues: {} })
     }
 
     function handleNewLayout() {

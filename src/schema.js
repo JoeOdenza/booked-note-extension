@@ -77,6 +77,13 @@ export const INDIVIDUAL_RESERVATION_SCHEMA = [
     { key: "actual_booking_date", label: "Booking Date"},
     { key: "currency", label: "Currency", type: "select", options: ["CAD", "USD"]},
     { key: "grossOrNet", label: "Gross Or Net", type: "select", options: ["Gross", "Net"]},
-    { key: "paymentCount", label: "Payment Count", type: "select", options: [1-5]}
+    { key: "paymentCount", label: "Payment Count", type: "select", options: [1, 2, 3, 4, 5]}
 ]
+
+export const SCHEMA_BY_TAB = {
+    reservations : INDIVIDUAL_RESERVATION_SCHEMA,
+    odenzareg: ODENZA_REG_SCHEMA,
+    additional_bookednote_fields: FIELD_SCHEMA
+}
+
 

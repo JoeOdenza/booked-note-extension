@@ -1,7 +1,7 @@
 import FieldList from "./FieldList"
 import PaymentFields from "./PaymentFields"
 
-export default function FieldsPanel({ fields, fieldValues, paymentCount, onFieldChange, onScan, onReset }) {
+export default function FieldsPanel({ fields, fieldValues, paymentCount, onFieldChange, onScan, onReset, showPaymentFields }) {
     return (
         <section className="panel">
             <div className="sectionHeader">
@@ -16,12 +16,14 @@ export default function FieldsPanel({ fields, fieldValues, paymentCount, onField
                 onScan={onScan}
             />
 
-            <PaymentFields
-                paymentCount={paymentCount}
-                fieldValues={fieldValues}
-                onFieldChange={onFieldChange}
-                onScan={onScan}
-            />
+            {showPaymentFields && (
+                <PaymentFields
+                    paymentCount={paymentCount}
+                    fieldValues={fieldValues}
+                    onFieldChange={onFieldChange}
+                    onScan={onScan}
+                />
+            )}
         </section>
     )
 }

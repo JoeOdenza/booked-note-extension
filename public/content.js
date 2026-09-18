@@ -113,6 +113,10 @@
         if (message.type === "CLEAR_HIGHLIGHTS") {
             clearAppliedHighlights()
         }
+
+        if (message.type === "STOP_PICKING") {
+            cleanup()
+        }
     })
 
     function clearAppliedHighlights() {

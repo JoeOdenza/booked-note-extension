@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import { FIELD_SCHEMA } from "./schema"
+import { SCHEMA_BY_TAB, FIELD_SCHEMA } from "./schema"
 import Header from "./components/Header"
 import LayoutPanel from "./components/LayoutPanel"
 import FieldsPanel from "./components/FieldsPanel"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 async function getActiveTab() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -26,6 +27,7 @@ export default function App() {
     const [layoutNameDraft, setLayoutNameDraft] = useState("")
     const [status, setStatus] = useState("")
     const [hasHighlights, setHasHighlights] = useState(false)
+    const [activeTab, setActiveTab] = useState("reservations")
 
     const modeRef = useRef(mode)
     useEffect(() => {
@@ -35,12 +37,16 @@ export default function App() {
     useEffect(() => {
         refreshLayouts()
 
-        function onMessage(message) {
+        function onMessage(message, sender) {
             if (message.type === "FIELD_PICKED") {
                 setFieldValues((prev) => ({ ...prev, [message.key]: message.value }))
 
                 if (modeRef.current === "creating") {
                     setDraftLayout((prev) => ({ ...prev, [message.key]: message.selector }))
+                }
+
+                if (sender.tab) {
+                    chrome.tabs.sendMessage(sender.tab.id, { type: "STOP_PICKING" }).catch(() => {})
                 }
             }
 
@@ -149,6 +155,7 @@ export default function App() {
 
     const isIdle = mode === "idle"
     const paymentCount = Number(fieldValues.paymentCount) || 0
+    const activeSchema = SCHEMA_BY_TAB[activeTab] || FIELD_SCHEMA
 
     return (
         <>
@@ -174,13 +181,24 @@ export default function App() {
                 status={status}
             />
 
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
+            <TabsList>
+                <TabsTrigger value="reservations">Reservations</TabsTrigger>
+                <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
+                <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
+            </TabsList>
+            <TabsContent value="reservations">Make changes to your account here.</TabsContent>
+            <TabsContent value="odenzareg">Change your password here.</TabsContent>
+            </Tabs>
+
             <FieldsPanel
-                fields={FIELD_SCHEMA}
+                fields={activeSchema}
                 fieldValues={fieldValues}
                 paymentCount={paymentCount}
                 onFieldChange={handleFieldChange}
                 onScan={startScanning}
                 onReset={handleReset}
+                showPaymentFields={activeTab === "reservations"}
             />
         </>
     )

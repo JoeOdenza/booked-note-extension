@@ -81,6 +81,7 @@ export const ADDITIONAL_FIELD_SCHEMA = [
     { key: "added_guest_cc", label: "Added Guest Credit Card?", type: "checkbox"},
     { key: "guest_deposit", label: "Guest Deposit"},
     { key: "guest_in_house_charges", label: "Guest Inhouse Charges"},
+    { key: "bank_points_used", label: "Bank_Points_Used", type: "select", options: ["None", "ATB", "TD"] },
     { key: "additional_travelers_num", label: "Additional Travelers Count", type:"select", options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
 ] as const satisfies Field[]
 

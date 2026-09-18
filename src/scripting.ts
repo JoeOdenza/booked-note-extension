@@ -293,3 +293,8 @@ export async function matchGroupTypeAndMarketingSource(certificateCode: string) 
 
     await chrome.storage.local.set({ resCardFieldValues })
 }
+
+// function that matches branch number to branch_no json, stores into chrome storage for res card dection
+export async function matchBranchNo(bank_points_used: string, region: string) {
+    
+}

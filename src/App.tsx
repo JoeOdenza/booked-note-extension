@@ -4,6 +4,7 @@ import Header from "./components/Header"
 import LayoutPanel from "./components/LayoutPanel"
 import ReservationPanel from "./components/ReservationPanel"
 import FieldsPanel from "./components/FieldsPanel"
+import ResCard from "./components/ResCard"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getActiveTab, fillBookedNote, computeBookedNoteFieldsFromLocalStore } from "./scripting"
 import type { FieldValues, Layout, Layouts, Mode, Reservation, Reservations, StorageShape, TabKey } from "./types"
@@ -45,6 +46,7 @@ export default function App() {
     const [status, setStatus] = useState("")
     const [hasHighlights, setHasHighlights] = useState(false)
     const [activeTab, setActiveTab] = useState<TabKey>("reservations")
+    const [mainTab, setMainTab] = useState<"bookedNote" | "resCard">("bookedNote")
 
     const [reservations, setReservations] = useState<Reservations>({})
     const [activeReservationId, setActiveReservationId] = useState("")
@@ -80,9 +82,20 @@ export default function App() {
         refreshReservations()
     }, [])
 
+    // Tracks which tab the OTHER pieces of state below (selectedLayout, activeReservationId, ...)
+    // currently belong to. When activeTab itself just changed, those haven't been reset yet --
+    // the tab-switch effect that clears them runs after this one in the same commit -- so this
+    // effect would otherwise fire once using the NEW activeTab but the OLD tab's leftover
+    // selectedLayout/fieldValues, writing them into the wrong tab's layoutData bucket.
+    const persistedTabRef = useRef(activeTab)
+
     // Reservations own their field values in their own storage slot, independent of whichever
     // layout they're using to scan -- so two reservations can share a layout without colliding.
     useEffect(() => {
+        const tabJustChanged = persistedTabRef.current !== activeTab
+        persistedTabRef.current = activeTab
+        if (tabJustChanged) return
+
         if (activeTab === "reservations") {
             if (!activeReservationId) return
 
@@ -302,6 +315,17 @@ export default function App() {
         setFieldValues((prev) => ({ ...prev, [key]: value }))
     }
 
+    // Naming/creating a layout is tied to whichever tab was active when it started -- switching
+    // tabs mid-creation would otherwise save the in-progress draft (and its scanned values) under
+    // the new tab's schema instead of the one it was actually built against.
+    function handleTabChange(value: string) {
+        if (mode !== "idle") {
+            setStatus("Finish or cancel the current layout before switching tabs.")
+            return
+        }
+        setActiveTab(value as TabKey)
+    }
+
     function handleReset() {
         setFieldValues({})
     }
@@ -414,75 +438,87 @@ export default function App() {
         <>
             <Header />
 
-            <div className="buttonRow">
-                
-                <button className = "primary" onClick={async () => {
-                    await fillBookedNote({
-                        kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD"
-                    });
-                    await computeBookedNoteFieldsFromLocalStore('RCI', 200);
-                }}>Fill Booked Note</button>
-                {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
+            <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as "bookedNote" | "resCard")} className="w-[400px]">
+                <TabsList>
+                    <TabsTrigger value="bookedNote">Booked Note</TabsTrigger>
+                    <TabsTrigger value="resCard">Res Card</TabsTrigger>
+                </TabsList>
 
-                <button onClick={handleStartNewBookedNote}>Start New Booked Note</button>
-            </div>
+                <TabsContent value="bookedNote">
+                    <div className="buttonRow">
+                        <button className = "primary" onClick={async () => {
+                            await fillBookedNote({
+                                kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD"
+                            });
+                            await computeBookedNoteFieldsFromLocalStore('RCI', 200);
+                        }}>Fill Booked Note</button>
+                        {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
 
-            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-            <TabsList>
-                <TabsTrigger value="reservations">Reservations</TabsTrigger>
-                <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
-                <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
-            </TabsList>
-            <TabsContent value="reservations">Make changes to your account here.</TabsContent>
-            <TabsContent value="odenzareg">Change your password here.</TabsContent>
+                        <button onClick={handleStartNewBookedNote}>Start New Booked Note</button>
+                    </div>
+
+                    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-[400px]">
+                    <TabsList>
+                        <TabsTrigger value="reservations">Reservations</TabsTrigger>
+                        <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
+                        <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="reservations"></TabsContent>
+                    <TabsContent value="odenzareg"></TabsContent>
+                    </Tabs>
+
+                    {activeTab === "reservations" && (
+                        <ReservationPanel
+                            reservations={reservations}
+                            activeReservationId={activeReservationId}
+                            onSelectedReservationChange={handleSelectedReservationChange}
+                            isAdding={isAddingReservation}
+                            reservationLabelDraft={reservationLabelDraft}
+                            onReservationLabelDraftChange={setReservationLabelDraft}
+                            onStartAddReservation={handleStartAddReservation}
+                            onCreateReservation={handleCreateReservation}
+                            onCancelAddReservation={handleCancelAddReservation}
+                            onDeleteReservation={handleDeleteReservation}
+                        />
+                    )}
+
+                    <LayoutPanel
+                        layouts={layouts}
+                        selectedLayout={selectedLayout}
+                        onSelectedLayoutChange={handleSelectedLayoutChange}
+                        isIdle={isIdle}
+                        hasHighlights={hasHighlights}
+                        onApply={applyLayout}
+                        onDelete={handleDeleteLayout}
+                        onClearHighlights={handleClearHighlights}
+                        mode={mode}
+                        layoutNameDraft={layoutNameDraft}
+                        onLayoutNameDraftChange={setLayoutNameDraft}
+                        onNewLayout={handleNewLayout}
+                        onStartLayout={handleStartLayout}
+                        onSaveLayout={handleSaveLayout}
+                        onCancelLayout={handleCancelLayout}
+                        draftLayoutName={draftLayoutName}
+                        status={status}
+                    />
+
+                    <FieldsPanel
+                        fields={activeSchema}
+                        fieldValues={fieldValues}
+                        paymentCount={paymentCount}
+                        onFieldChange={handleFieldChange}
+                        onScan={startScanning}
+                        onReset={handleReset}
+                        showPaymentFields={activeTab === "reservations"}
+                        showAdditionalTravelerFields={activeTab === "additional_bookednote_fields"}
+                        additionalTravelerCount={additionalTravelerCount}
+                    />
+                </TabsContent>
+
+                <TabsContent value="resCard">
+                    <ResCard />
+                </TabsContent>
             </Tabs>
-
-            {activeTab === "reservations" && (
-                <ReservationPanel
-                    reservations={reservations}
-                    activeReservationId={activeReservationId}
-                    onSelectedReservationChange={handleSelectedReservationChange}
-                    isAdding={isAddingReservation}
-                    reservationLabelDraft={reservationLabelDraft}
-                    onReservationLabelDraftChange={setReservationLabelDraft}
-                    onStartAddReservation={handleStartAddReservation}
-                    onCreateReservation={handleCreateReservation}
-                    onCancelAddReservation={handleCancelAddReservation}
-                    onDeleteReservation={handleDeleteReservation}
-                />
-            )}
-
-            <LayoutPanel
-                layouts={layouts}
-                selectedLayout={selectedLayout}
-                onSelectedLayoutChange={handleSelectedLayoutChange}
-                isIdle={isIdle}
-                hasHighlights={hasHighlights}
-                onApply={applyLayout}
-                onDelete={handleDeleteLayout}
-                onClearHighlights={handleClearHighlights}
-                mode={mode}
-                layoutNameDraft={layoutNameDraft}
-                onLayoutNameDraftChange={setLayoutNameDraft}
-                onNewLayout={handleNewLayout}
-                onStartLayout={handleStartLayout}
-                onSaveLayout={handleSaveLayout}
-                onCancelLayout={handleCancelLayout}
-                draftLayoutName={draftLayoutName}
-                status={status}
-            />
-
-            <FieldsPanel
-                fields={activeSchema}
-                fieldValues={fieldValues}
-                paymentCount={paymentCount}
-                onFieldChange={handleFieldChange}
-                onScan={startScanning}
-                onReset={handleReset}
-                showPaymentFields={activeTab === "reservations"}
-                showAdditionalTravelerFields={activeTab === "additional_bookednote_fields"}
-                additionalTravelerCount={additionalTravelerCount}
-            />
         </>
     )
 }

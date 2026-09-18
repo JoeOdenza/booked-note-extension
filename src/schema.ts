@@ -4,6 +4,8 @@ import type { Field, TabKey } from "./types"
 export const INDIVIDUAL_RESERVATION_SCHEMA = [
     { key: "vendor_name", label: "Vendor Name"},
     { key: "confirmation_no", label: "Confirmation Number" },
+    { key: "record_locator", label: "Record Locator" },
+    { key: "trip_city", label: "City Traveling To"},
     { key: "name", label: "Name"},
     { key: "additional_guest_name", label: "Companion Name"},
     { key: "base_cost", label: "Base Cost"},
@@ -13,6 +15,11 @@ export const INDIVIDUAL_RESERVATION_SCHEMA = [
     { key: "email", label: "Email"},
     { key: "commission", label: "Commission"},
     { key: "actual_booking_date", label: "Booking Date"},
+    { key: "start_date", label: "Start Date"},
+    { key: "end_date", label: "End Date"},
+    { key: "trip_city", label: "City Traveling To"},
+    { key: "trip_region", label: "Region Traveling To"},
+    { key: "travel_property", label: "Travel Property"},
     { key: "currency", label: "Currency", type: "select", options: ["CAD", "USD"]},
     { key: "grossOrNet", label: "Gross Or Net", type: "select", options: ["Gross", "Net"]},
     { key: "paymentCount", label: "Payment Count", type: "select", options: [1, 2, 3, 4, 5]}
@@ -82,6 +89,35 @@ export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
     { key: "add_relation", label: "Relationship to Main Guest"},
     { key: "add_citizenship", label: "Citizenship"}
 ] as const satisfies Field[]
+
+export const RES_CARD_SCHEMA: Field[] = [
+    { key: "trip_name", label: "Trip Name"},
+    { key: "group_type", label: "Group Type"},
+    { key: "branch_num", label: "Branch No."},
+    { key: "locator_num", label: "Locator Num"},
+    { key: "trip_region", label: "Trip Region"},
+    { key: "trip_city", label: "Destination"}
+] as const satisfies Field[]
+
+export const RES_CARD_RESERVATION_SCHEMA: Field[] = [
+    { key: "vendor_name", label: "Vendor"},
+    { key: "travel_category", label:"Travel Category"},
+    { key: "confirmation_num", label: "Confirmation Number"},
+    { key: "locator_num", label: "Locator Number"},
+    { key: "currency", label: "Currency"},
+    { key: "total_cost", label: "Base Cost"},
+    { key: "travel_property", label: "Travel Property"},
+    { key: "start_date", label: "Start Date"},
+    { key: "end_date", label: "End Date"}
+
+]
+
+export const RES_CARD_SELECTION_SCHEMA = {
+    resCard : RES_CARD_SCHEMA,
+    reservations: RES_CARD_RESERVATION_SCHEMA,
+    additionalTravler: ADDITIONAL_TRAVELER_SCHEMA,
+}
+
 
 export const SCHEMA_BY_TAB: Record<TabKey, readonly Field[]> = {
     reservations : INDIVIDUAL_RESERVATION_SCHEMA,

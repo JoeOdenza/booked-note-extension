@@ -4,7 +4,6 @@ import Header from "./components/Header"
 import LayoutPanel from "./components/LayoutPanel"
 import FieldsPanel from "./components/FieldsPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
 import { getActiveTab, fillBookedNote } from "./scripting"
 import type { FieldValues, Layout, Layouts, Mode, StorageShape, TabKey } from "./types"
 
@@ -32,6 +31,16 @@ export default function App() {
     useEffect(() => {
         modeRef.current = mode
     }, [mode])
+
+    useEffect(() => {
+        const activeLayoutName = mode === "creating" ? draftLayoutName : selectedLayout
+        if (!activeLayoutName) return
+
+        chrome.storage.local.get<StorageShape>("layoutData").then((stored) => {
+            const allData = { ...(stored.layoutData || {}), [activeLayoutName]: fieldValues }
+            chrome.storage.local.set({ layoutData: allData })
+        })
+    }, [fieldValues, mode, selectedLayout, draftLayoutName])
 
     useEffect(() => {
         refreshLayouts()
@@ -65,6 +74,18 @@ export default function App() {
     async function refreshLayouts() {
         const stored = await chrome.storage.local.get<StorageShape>("layouts")
         setLayouts(stored.layouts || {})
+    }
+
+    async function handleSelectedLayoutChange(name: string) {
+        setSelectedLayout(name)
+
+        if (!name) {
+            setFieldValues({})
+            return
+        }
+
+        const stored = await chrome.storage.local.get<StorageShape>("layoutData")
+        setFieldValues(stored.layoutData?.[name] || {})
     }
 
     async function startScanning(key: string) {
@@ -137,9 +158,15 @@ export default function App() {
         setMode("idle")
     }
 
-    function handleCancelLayout() {
+    async function handleCancelLayout() {
+        const stored = await chrome.storage.local.get<StorageShape>("layoutData")
+        const allData = { ...(stored.layoutData || {}) }
+        delete allData[draftLayoutName]
+        await chrome.storage.local.set({ layoutData: allData })
+
         setStatus("")
         setDraftLayout({})
+        setFieldValues({})
         setMode("idle")
     }
 
@@ -150,9 +177,14 @@ export default function App() {
         const allLayouts = { ...(stored.layouts || {}) }
         delete allLayouts[selectedLayout]
 
-        await chrome.storage.local.set({ layouts: allLayouts })
+        const storedData = await chrome.storage.local.get<StorageShape>("layoutData")
+        const allData = { ...(storedData.layoutData || {}) }
+        delete allData[selectedLayout]
+
+        await chrome.storage.local.set({ layouts: allLayouts, layoutData: allData })
         setLayouts(allLayouts)
         setSelectedLayout("")
+        setFieldValues({})
     }
 
     const isIdle = mode === "idle"
@@ -166,7 +198,7 @@ export default function App() {
             <LayoutPanel
                 layouts={layouts}
                 selectedLayout={selectedLayout}
-                onSelectedLayoutChange={setSelectedLayout}
+                onSelectedLayoutChange={handleSelectedLayoutChange}
                 isIdle={isIdle}
                 hasHighlights={hasHighlights}
                 onApply={applyLayout}

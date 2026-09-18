@@ -11,7 +11,7 @@
     --border: oklch(0.922 0 0);
     --text: #1f2430;
     --text-muted: #6b7280;
-    --accent: oklch(0.97 0 0);
+    --accent: oklch(78.558% 0.14794 224.301);
     --accent-hover: #2f5bc4;
     --danger: #d64545;
     --danger-hover: #b93838;
@@ -156,7 +156,6 @@ button:disabled {
 button.primary {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
 }
 
 button.primary:hover {
@@ -244,6 +243,75 @@ button.danger:hover {
 
 .paymentBox input,
 .paymentBox select {
+    flex: 1;
+    min-width: 0;
+}
+
+#addTravelerFields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.addTravelersBox {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-hover);
+    border-radius: var(--radius);
+    padding: 10px;
+    background: var(--bg);
+}
+
+.addTravelersBoxHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.travelerBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent-hover);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.addTravelersBox h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.addTravelersBox > .fieldRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.addTravelersBox > .fieldRow:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.addTravelersBox label {
+    width: 110px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.addTravelersBox input,
+.addTravelersBox select {
     flex: 1;
     min-width: 0;
 }

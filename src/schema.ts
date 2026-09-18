@@ -1,20 +1,21 @@
 import type { Field, TabKey } from "./types"
 
-// Used by default for now, will utilize other schemas when I implement the tabs
-export const FIELD_SCHEMA: Field[] = [
-
+// Unused - For individual reservations later
+export const INDIVIDUAL_RESERVATION_SCHEMA: Field[] = [
+    { key: "vendor_name", label: "Vendor Name"},
     { key: "confirmation_no", label: "Confirmation Number" },
-    { key: "name", label: "name"},
+    { key: "name", label: "Name"},
+    { key: "additional_guest_name", label: "Companion Name"},
     { key: "base_cost", label: "Base Cost"},
     { key: "tax_cost", label: "Tax Cost"},
     { key: "total_cost", label: "Total Cost"},
     { key: "phone_number", label: "Phone Number"},
     { key: "email", label: "Email"},
     { key: "commission", label: "Commission"},
+    { key: "actual_booking_date", label: "Booking Date"},
     { key: "currency", label: "Currency", type: "select", options: ["CAD", "USD"]},
     { key: "grossOrNet", label: "Gross Or Net", type: "select", options: ["Gross", "Net"]},
     { key: "paymentCount", label: "Payment Count", type: "select", options: [1, 2, 3, 4, 5]}
-
 ]
 
 // Payment type options for each dynamic payment box (driven by Payment Count)
@@ -64,28 +65,28 @@ export const ODENZA_REG_SCHEMA: Field[] = [
     { key: "guest_email", label:"Guest Email"}
 ]
 
-// Unused - For individual reservations later
-export const INDIVIDUAL_RESERVATION_SCHEMA: Field[] = [
-    { key: "vendor_name", label: "Vendor Name"},
-    { key: "confirmation_no", label: "Confirmation Number" },
-    { key: "name", label: "Name"},
-    { key: "additional_guest_name", label: "Companion Name"},
-    { key: "base_cost", label: "Base Cost"},
-    { key: "tax_cost", label: "Tax Cost"},
-    { key: "total_cost", label: "Total Cost"},
-    { key: "phone_number", label: "Phone Number"},
-    { key: "email", label: "Email"},
-    { key: "commission", label: "Commission"},
-    { key: "actual_booking_date", label: "Booking Date"},
-    { key: "currency", label: "Currency", type: "select", options: ["CAD", "USD"]},
-    { key: "grossOrNet", label: "Gross Or Net", type: "select", options: ["Gross", "Net"]},
-    { key: "paymentCount", label: "Payment Count", type: "select", options: [1, 2, 3, 4, 5]}
+// Used by default for now, will utilize other schemas when I implement the tabs
+export const ADDITIONAL_FIELD_SCHEMA: Field[] = [
+
+    { key: "added_guest_cc", label: "Added Guest Credit Card?", type: "checkbox"},
+    { key: "guest_deposit", label: "Guest Deposit"},
+    { key: "guest_in_house_charges", label: "Guest Inhouse Charges"},
+    { key: "additional_travelers_num", label: "Additional Travelers Count", type:"select", options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+]
+
+export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
+    { key: "add_first_name", label: "First Name"},
+    { key: "add_middle_name", label: "Middle Name"},
+    { key: "add_last_name", label: "Last Name"},
+    { key: "add_dob", label: "Date of Birth"},
+    { key: "add_relation", label: "Relationship to Main Guest"},
+    { key: "add_citizenship", label: "Citizenship"}
 ]
 
 export const SCHEMA_BY_TAB: Record<TabKey, Field[]> = {
     reservations : INDIVIDUAL_RESERVATION_SCHEMA,
     odenzareg: ODENZA_REG_SCHEMA,
-    additional_bookednote_fields: FIELD_SCHEMA
+    additional_bookednote_fields: ADDITIONAL_FIELD_SCHEMA
 }
 
 

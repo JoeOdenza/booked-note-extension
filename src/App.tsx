@@ -265,7 +265,7 @@ export default function App() {
 
                 <button onClick={handleStartNewBookedNote}>Start New Booked Note</button>
             </div>
-            
+
             <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
             <TabsList>
                 <TabsTrigger value="reservations">Reservations</TabsTrigger>
@@ -295,16 +295,6 @@ export default function App() {
                 draftLayoutName={draftLayoutName}
                 status={status}
             />
-
-            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-                <TabsList>
-                    <TabsTrigger value="reservations">Reservations</TabsTrigger>
-                    <TabsTrigger value="odenzareg">OdenzaReg</TabsTrigger>
-                    <TabsTrigger value="additional_bookednote_fields">Additional Fields</TabsTrigger>
-                </TabsList>
-                <TabsContent value="reservations">Make changes to your account here.</TabsContent>
-                <TabsContent value="odenzareg">Change your password here.</TabsContent>
-            </Tabs>
 
             <FieldsPanel
                 fields={activeSchema}

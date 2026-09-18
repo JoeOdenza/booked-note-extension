@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { FIELD_SCHEMA } from "./schema"
 import FieldRow from "./FieldRow"
+import { getActiveTab } from "./scripting"
 
-async function getActiveTab() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    return tab
-}
 
 async function ensureContentScript(tabId) {
     await chrome.scripting.executeScript({

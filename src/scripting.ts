@@ -1,4 +1,4 @@
-export async function getActiveTab() {
+export async function getActiveTab(): Promise<chrome.tabs.Tab> {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     return tab
 }
@@ -6,8 +6,8 @@ export async function getActiveTab() {
 // Sets an input's value on the page and fires the events the page's own JS listens for.
 // Uses the native value setter instead of `el.value =` directly, since some frameworks
 // (React, or ASP.NET's own postback wiring) override the plain setter and won't notice a raw assignment.
-function fillValue(selector, value) {
-    const el = document.querySelector(selector)
+function fillValue(selector: string, value: string | number): boolean {
+    const el = document.querySelector(selector) as HTMLInputElement | null
     if (!el) return false
 
     const proto = Object.getPrototypeOf(el)
@@ -15,7 +15,7 @@ function fillValue(selector, value) {
     if (nativeSetter) {
         nativeSetter.call(el, value)
     } else {
-        el.value = value
+        el.value = String(value)
     }
 
     el.dispatchEvent(new Event("input", { bubbles: true }))
@@ -24,7 +24,7 @@ function fillValue(selector, value) {
 }
 
 
-async function setInputValue(tabId, selector, value) {
+async function setInputValue(tabId: number, selector: string, value: string | number) {
     const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId },
         func: fillValue,
@@ -37,8 +37,8 @@ async function setInputValue(tabId, selector, value) {
 // Same as fillValue, but also fires blur -- AjaxControlToolkit's CalendarExtender (the
 // "odd looking" popup calendar on this page) reformats/validates the textbox on focus-loss,
 // so without blur the raw value can stick but not get picked up as a "real" selected date.
-function fillDate(selector, value) {
-    const el = document.querySelector(selector)
+function fillDate(selector: string, value: string): boolean {
+    const el = document.querySelector(selector) as HTMLInputElement | null
     if (!el) return false
 
     const proto = Object.getPrototypeOf(el)
@@ -55,7 +55,7 @@ function fillDate(selector, value) {
     return true
 }
 
-async function setDateValue(tabId, selector, value) {
+async function setDateValue(tabId: number, selector: string, value: string) {
     const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId },
         func: fillDate,
@@ -68,8 +68,8 @@ async function setDateValue(tabId, selector, value) {
 }
 
 // matchBy: "value" matches <option value="...">, "text" matches the option's visible label
-function fillSelect(selector, value, matchBy) {
-    const el = document.querySelector(selector)
+function fillSelect(selector: string, value: string, matchBy: "value" | "text"): boolean {
+    const el = document.querySelector(selector) as HTMLSelectElement | null
     if (!el) return false
 
     let resolvedValue = value
@@ -91,7 +91,7 @@ function fillSelect(selector, value, matchBy) {
     return true
 }
 
-async function setSelectValue(tabId, selector, value, matchBy = "value") {
+async function setSelectValue(tabId: number, selector: string, value: string, matchBy: "value" | "text" = "value") {
     const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId },
         func: fillSelect,
@@ -110,15 +110,15 @@ async function setSelectValue(tabId, selector, value, matchBy = "value") {
 // el.click() does the full native sequence (sets checked, unchecks the rest of the
 // radio group, fires click then change) -- unlike text/select values, there's no need
 // for the native-setter trick here since clicking is already the "real" way to do this.
-function pickRadio(selector) {
-    const el = document.querySelector(selector)
+function pickRadio(selector: string): boolean {
+    const el = document.querySelector(selector) as HTMLElement | null
     if (!el) return false
 
     el.click()
     return true
 }
 
-async function setRadioChecked(tabId, selector) {
+async function setRadioChecked(tabId: number, selector: string) {
     const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId },
         func: pickRadio,
@@ -132,7 +132,7 @@ async function setRadioChecked(tabId, selector) {
 
 // Resolves once the tab finishes reloading (if a postback triggered one), or after
 // timeoutMs if nothing was loading in the first place -- most fields won't cause a reload.
-function waitForTabIdle(tabId, timeoutMs = 1500) {
+function waitForTabIdle(tabId: number, timeoutMs = 1500): Promise<void> {
     return new Promise((resolve) => {
         let settled = false
 
@@ -144,7 +144,7 @@ function waitForTabIdle(tabId, timeoutMs = 1500) {
             resolve()
         }
 
-        function onUpdated(updatedTabId, info) {
+        function onUpdated(updatedTabId: number, info: chrome.tabs.OnUpdatedInfo) {
             if (updatedTabId === tabId && info.status === "complete") {
                 finish()
             }
@@ -160,42 +160,47 @@ export const FULFILLMENT_TYPE = {
     RCI: "RCI",
     DIAMOND: "Diamond",
     REGULAR: "Regular"
-};
+} as const;
 
 export const PAYMENT_CURRENCY = {
     USD: "USD",
     CAD: "CAD"
-};
+} as const;
+
+export type FulfillmentType = typeof FULFILLMENT_TYPE[keyof typeof FULFILLMENT_TYPE]
+export type PaymentCurrency = typeof PAYMENT_CURRENCY[keyof typeof PAYMENT_CURRENCY]
+
+interface FillBookedNoteArgs {
+    profitAndLoss: number | string
+    fulfillmentType?: FulfillmentType
+    paymentCurrency: PaymentCurrency
+}
 
 export async function fillBookedNote({
     profitAndLoss,
     fulfillmentType,
     paymentCurrency
-}) {
+}: FillBookedNoteArgs) {
     const tab = await getActiveTab();
+    const tabId = tab.id!;
     const pnl = Number(profitAndLoss);
 
-    await setInputValue(tab.id, "#txtBookingPL", pnl);
-    await setInputValue(tab.id, "#txtInHouseCharges", "123");
+    await setInputValue(tabId, "#txtBookingPL", pnl);
+    await setInputValue(tabId, "#txtInHouseCharges", "123");
 
     if (pnl >= 0) {
-        await setSelectValue(tab.id, "#dropBookingFulfillment", "NO", "text");
+        await setSelectValue(tabId, "#dropBookingFulfillment", "NO", "text");
     } else if (pnl < 0) {
-        await setSelectValue(tab.id, "#dropBookingFulfillment", "YES", "text");
-        await setSelectValue(tab.id, "#dropfulfillmentType", fulfillmentType, "text");
+        await setSelectValue(tabId, "#dropBookingFulfillment", "YES", "text");
+        await setSelectValue(tabId, "#dropfulfillmentType", fulfillmentType ?? "", "text");
     } else {
         console.log("Invalid profitAndLoss found")
     }
 
-    await setSelectValue(tab.id, "#grdVendor_ctl02_drpCurrVendor", paymentCurrency, "text");
-    await setSelectValue(tab.id, "#grdVendor_ctl02_drpPayment", "1", "text");
-    await setRadioChecked(tab.id, "#grdVendor_ctl02_grdPayment_ctl02_radCardType_6");
-    await setSelectValue(tab.id, "#grdVendor_ctl02_grdPayment_ctl02_drpCurr", paymentCurrency, "text");
+    await setSelectValue(tabId, "#grdVendor_ctl02_drpCurrVendor", paymentCurrency, "text");
+    await setSelectValue(tabId, "#grdVendor_ctl02_drpPayment", "1", "text");
+    await setRadioChecked(tabId, "#grdVendor_ctl02_grdPayment_ctl02_radCardType_6");
+    await setSelectValue(tabId, "#grdVendor_ctl02_grdPayment_ctl02_drpCurr", paymentCurrency, "text");
 
-    await setDateValue(tab.id, "#grdVendor_ctl02_txtCreateDate", "06/06/2026")
-
-
-
-
-
+    await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", "06/06/2026")
 }

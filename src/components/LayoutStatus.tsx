@@ -1,4 +1,12 @@
-export default function LayoutStatus({ mode, draftLayoutName, status }) {
+import type { Mode } from "@/types"
+
+interface LayoutStatusProps {
+    mode: Mode
+    draftLayoutName: string
+    status: string
+}
+
+export default function LayoutStatus({ mode, draftLayoutName, status }: LayoutStatusProps) {
     if (mode === "creating") {
         return (
             <p id="layoutStatus">

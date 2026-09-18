@@ -1,3 +1,16 @@
+import type { Layouts } from "@/types"
+
+interface LayoutSelectorProps {
+    layouts: Layouts
+    selectedLayout: string
+    disabled: boolean
+    hasHighlights: boolean
+    onSelectedLayoutChange: (name: string) => void
+    onApply: (name: string) => void
+    onDelete: () => void
+    onClearHighlights: () => void
+}
+
 export default function LayoutSelector({
     layouts,
     selectedLayout,
@@ -7,7 +20,7 @@ export default function LayoutSelector({
     onApply,
     onDelete,
     onClearHighlights
-}) {
+}: LayoutSelectorProps) {
     return (
         <div className="layoutRow">
             <select

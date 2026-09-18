@@ -12,4 +12,8 @@ export type Layouts = Record<string, Layout>
 
 export type Mode = "idle" | "naming" | "creating"
 
+export interface StorageShape {
+    layouts: Layouts
+}
+
 export type TabKey = "reservations" | "odenzareg" | "additional_bookednote_fields"

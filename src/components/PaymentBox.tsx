@@ -1,7 +1,8 @@
 import FieldRow from "./FieldRow"
 import { PAYMENT_TYPE_OPTIONS, PAYMENT_BASE_FIELDS, PAYMENT_TYPE_EXTRA_FIELDS } from "../schema"
+import type { Field, FieldValues } from "@/types"
 
-function getPaymentFields(index, selectedType) {
+function getPaymentFields(index: number, selectedType: string): Field[] {
     const prefix = `payment_${index}_`
     const extraFields = PAYMENT_TYPE_EXTRA_FIELDS[selectedType] || []
 
@@ -12,7 +13,14 @@ function getPaymentFields(index, selectedType) {
     ]
 }
 
-export default function PaymentBox({ index, fieldValues, onFieldChange, onScan }) {
+interface PaymentBoxProps {
+    index: number
+    fieldValues: FieldValues
+    onFieldChange: (key: string, value: string) => void
+    onScan: (key: string) => void
+}
+
+export default function PaymentBox({ index, fieldValues, onFieldChange, onScan }: PaymentBoxProps) {
     const selectedType = fieldValues[`payment_${index}_type`] || ""
 
     return (

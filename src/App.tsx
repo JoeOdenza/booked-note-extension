@@ -5,10 +5,11 @@ import LayoutPanel from "./components/LayoutPanel"
 import FieldsPanel from "./components/FieldsPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { getActiveTab, fillBookedNote, FULFILLMENT_TYPE, PAYMENT_CURRENCY } from "./scripting"
+import { getActiveTab, fillBookedNote } from "./scripting"
+import type { FieldValues, Layout, Layouts, Mode, StorageShape, TabKey } from "./types"
 
 
-async function ensureContentScript(tabId) {
+async function ensureContentScript(tabId: number) {
     await chrome.scripting.executeScript({
         target: { tabId, allFrames: true },
         files: ["content.js"]
@@ -16,16 +17,16 @@ async function ensureContentScript(tabId) {
 }
 
 export default function App() {
-    const [fieldValues, setFieldValues] = useState({})
-    const [layouts, setLayouts] = useState({})
+    const [fieldValues, setFieldValues] = useState<FieldValues>({})
+    const [layouts, setLayouts] = useState<Layouts>({})
     const [selectedLayout, setSelectedLayout] = useState("")
-    const [mode, setMode] = useState("idle") // "idle" | "naming" | "creating"
+    const [mode, setMode] = useState<Mode>("idle")
     const [draftLayoutName, setDraftLayoutName] = useState("")
-    const [draftLayout, setDraftLayout] = useState({})
+    const [draftLayout, setDraftLayout] = useState<Layout>({})
     const [layoutNameDraft, setLayoutNameDraft] = useState("")
     const [status, setStatus] = useState("")
     const [hasHighlights, setHasHighlights] = useState(false)
-    const [activeTab, setActiveTab] = useState("reservations")
+    const [activeTab, setActiveTab] = useState<TabKey>("reservations")
 
     const modeRef = useRef(mode)
     useEffect(() => {
@@ -35,7 +36,7 @@ export default function App() {
     useEffect(() => {
         refreshLayouts()
 
-        function onMessage(message, sender) {
+        function onMessage(message: any, sender: chrome.runtime.MessageSender) {
             if (message.type === "FIELD_PICKED") {
                 // TEMP: log the selector so it can be copied out and hardcoded elsewhere
                 console.log(`[scan] ${message.key} ->`, message.selector)
@@ -46,7 +47,7 @@ export default function App() {
                     setDraftLayout((prev) => ({ ...prev, [message.key]: message.selector }))
                 }
 
-                if (sender.tab) {
+                if (sender.tab?.id !== undefined) {
                     chrome.tabs.sendMessage(sender.tab.id, { type: "STOP_PICKING" }).catch(() => {})
                 }
             }
@@ -62,45 +63,45 @@ export default function App() {
     }, [])
 
     async function refreshLayouts() {
-        const stored = await chrome.storage.local.get("layouts")
+        const stored = await chrome.storage.local.get<StorageShape>("layouts")
         setLayouts(stored.layouts || {})
     }
 
-    async function startScanning(key) {
+    async function startScanning(key: string) {
         try {
             const tab = await getActiveTab()
-            await ensureContentScript(tab.id)
-            await chrome.tabs.sendMessage(tab.id, { type: "PICK_FIELD", key })
+            await ensureContentScript(tab.id!)
+            await chrome.tabs.sendMessage(tab.id!, { type: "PICK_FIELD", key })
         } catch (error) {
-            setStatus(`Scan failed: ${error.message}`)
+            setStatus(`Scan failed: ${error instanceof Error ? error.message : String(error)}`)
         }
     }
 
-    async function applyLayout(name) {
+    async function applyLayout(name: string) {
         const layout = layouts[name]
         if (!layout) return
 
         try {
             const tab = await getActiveTab()
-            await ensureContentScript(tab.id)
-            await chrome.tabs.sendMessage(tab.id, { type: "APPLY_LAYOUT", layout })
+            await ensureContentScript(tab.id!)
+            await chrome.tabs.sendMessage(tab.id!, { type: "APPLY_LAYOUT", layout })
         } catch (error) {
-            setStatus(`Apply layout failed: ${error.message}`)
+            setStatus(`Apply layout failed: ${error instanceof Error ? error.message : String(error)}`)
         }
     }
 
     async function handleClearHighlights() {
         try {
             const tab = await getActiveTab()
-            await ensureContentScript(tab.id)
-            await chrome.tabs.sendMessage(tab.id, { type: "CLEAR_HIGHLIGHTS" })
+            await ensureContentScript(tab.id!)
+            await chrome.tabs.sendMessage(tab.id!, { type: "CLEAR_HIGHLIGHTS" })
             setHasHighlights(false)
         } catch (error) {
-            setStatus(`Clear highlight failed: ${error.message}`)
+            setStatus(`Clear highlight failed: ${error instanceof Error ? error.message : String(error)}`)
         }
     }
 
-    function handleFieldChange(key, value) {
+    function handleFieldChange(key: string, value: string) {
         setFieldValues((prev) => ({ ...prev, [key]: value }))
     }
 
@@ -125,7 +126,7 @@ export default function App() {
     }
 
     async function handleSaveLayout() {
-        const stored = await chrome.storage.local.get("layouts")
+        const stored = await chrome.storage.local.get<StorageShape>("layouts")
         const allLayouts = { ...(stored.layouts || {}), [draftLayoutName]: draftLayout }
 
         await chrome.storage.local.set({ layouts: allLayouts })
@@ -145,7 +146,7 @@ export default function App() {
     async function handleDeleteLayout() {
         if (!selectedLayout) return
 
-        const stored = await chrome.storage.local.get("layouts")
+        const stored = await chrome.storage.local.get<StorageShape>("layouts")
         const allLayouts = { ...(stored.layouts || {}) }
         delete allLayouts[selectedLayout]
 
@@ -181,6 +182,8 @@ export default function App() {
                 draftLayoutName={draftLayoutName}
                 status={status}
             />
+
+            <button onClick={async () => await fillBookedNote({profitAndLoss: -123, paymentCurrency: "CAD"})}>Fill BookNote</button>
 
             <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
             <TabsList>

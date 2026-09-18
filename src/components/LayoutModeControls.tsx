@@ -1,3 +1,15 @@
+import type { Mode } from "@/types"
+
+interface LayoutModeControlsProps {
+    mode: Mode
+    layoutNameDraft: string
+    onLayoutNameDraftChange: (value: string) => void
+    onNewLayout: () => void
+    onStartLayout: () => void
+    onSaveLayout: () => void
+    onCancelLayout: () => void
+}
+
 export default function LayoutModeControls({
     mode,
     layoutNameDraft,
@@ -6,7 +18,7 @@ export default function LayoutModeControls({
     onStartLayout,
     onSaveLayout,
     onCancelLayout
-}) {
+}: LayoutModeControlsProps) {
     return (
         <div className="layoutRow">
             {mode === "idle" && (

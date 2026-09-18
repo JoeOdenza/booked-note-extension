@@ -1,6 +1,8 @@
+import type { Field, TabKey } from "./types"
+
 // Used by default for now, will utilize other schemas when I implement the tabs
-export const FIELD_SCHEMA = [
-    
+export const FIELD_SCHEMA: Field[] = [
+
     { key: "confirmation_no", label: "Confirmation Number" },
     { key: "name", label: "name"},
     { key: "base_cost", label: "Base Cost"},
@@ -16,7 +18,7 @@ export const FIELD_SCHEMA = [
 ]
 
 // Payment type options for each dynamic payment box (driven by Payment Count)
-export const PAYMENT_TYPE_OPTIONS = [
+export const PAYMENT_TYPE_OPTIONS: string[] = [
     "Odenza Card",
     "Guest Card",
     "Uplift Card",
@@ -28,21 +30,21 @@ export const PAYMENT_TYPE_OPTIONS = [
 ]
 
 // Fields every payment box gets regardless of payment type
-export const PAYMENT_BASE_FIELDS = [
+export const PAYMENT_BASE_FIELDS: Field[] = [
     { key: "value", label: "Payment Value" },
     { key: "currency", label: "Payment Currency", type: "select", options: ["CAD", "USD"] },
     { key: "date", label: "Payment Date" }
 ]
 
 // Extra fields shown once a payment box's type is selected
-export const PAYMENT_TYPE_EXTRA_FIELDS = {
+export const PAYMENT_TYPE_EXTRA_FIELDS: Record<string, Field[]> = {
     "Odenza Card": [{ key: "name_on_card", label: "Name on Card" }],
     "Guest Card": [{ key: "last_4_digits", label: "Last 4 Digits" }],
     "Uplift Card": [{ key: "last_4_digits", label: "Last 4 Digits" }]
 }
 
 // For Odenza Reg - extract all information that's static about guests
-export const ODENZA_REG_SCHEMA = [
+export const ODENZA_REG_SCHEMA: Field[] = [
     { key: "agent", label: "Agent"},
     { key: "certificate_code", label: "Certificate Code"},
     { key: "merchant_code", label: "Merchant Code"},
@@ -63,7 +65,7 @@ export const ODENZA_REG_SCHEMA = [
 ]
 
 // Unused - For individual reservations later
-export const INDIVIDUAL_RESERVATION_SCHEMA = [
+export const INDIVIDUAL_RESERVATION_SCHEMA: Field[] = [
     { key: "vendor_name", label: "Vendor Name"},
     { key: "confirmation_no", label: "Confirmation Number" },
     { key: "name", label: "Name"},
@@ -80,7 +82,7 @@ export const INDIVIDUAL_RESERVATION_SCHEMA = [
     { key: "paymentCount", label: "Payment Count", type: "select", options: [1, 2, 3, 4, 5]}
 ]
 
-export const SCHEMA_BY_TAB = {
+export const SCHEMA_BY_TAB: Record<TabKey, Field[]> = {
     reservations : INDIVIDUAL_RESERVATION_SCHEMA,
     odenzareg: ODENZA_REG_SCHEMA,
     additional_bookednote_fields: FIELD_SCHEMA

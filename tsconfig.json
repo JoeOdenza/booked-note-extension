@@ -19,7 +19,6 @@
     "noFallthroughCasesInSwitch": true,
 
     "types": ["chrome", "node"],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

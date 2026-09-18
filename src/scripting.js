@@ -34,6 +34,39 @@ async function setInputValue(tabId, selector, value) {
     return result
 }
 
+// Same as fillValue, but also fires blur -- AjaxControlToolkit's CalendarExtender (the
+// "odd looking" popup calendar on this page) reformats/validates the textbox on focus-loss,
+// so without blur the raw value can stick but not get picked up as a "real" selected date.
+function fillDate(selector, value) {
+    const el = document.querySelector(selector)
+    if (!el) return false
+
+    const proto = Object.getPrototypeOf(el)
+    const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set
+    if (nativeSetter) {
+        nativeSetter.call(el, value)
+    } else {
+        el.value = value
+    }
+
+    el.dispatchEvent(new Event("input", { bubbles: true }))
+    el.dispatchEvent(new Event("change", { bubbles: true }))
+    el.dispatchEvent(new Event("blur", { bubbles: true }))
+    return true
+}
+
+async function setDateValue(tabId, selector, value) {
+    const [{ result }] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: fillDate,
+        args: [selector, value]
+    })
+
+    await waitForTabIdle(tabId)
+
+    return result
+}
+
 // matchBy: "value" matches <option value="...">, "text" matches the option's visible label
 function fillSelect(selector, value, matchBy) {
     const el = document.querySelector(selector)
@@ -158,6 +191,9 @@ export async function fillBookedNote({
     await setSelectValue(tab.id, "#grdVendor_ctl02_drpPayment", "1", "text");
     await setRadioChecked(tab.id, "#grdVendor_ctl02_grdPayment_ctl02_radCardType_6");
     await setSelectValue(tab.id, "#grdVendor_ctl02_grdPayment_ctl02_drpCurr", paymentCurrency, "text");
+
+    await setDateValue(tab.id, "#grdVendor_ctl02_txtCreateDate", "06/06/2026")
+
 
 
 

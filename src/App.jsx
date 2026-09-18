@@ -5,6 +5,8 @@ import LayoutPanel from "./components/LayoutPanel"
 import FieldsPanel from "./components/FieldsPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+import { getActiveTab, fillBookedNote, FULFILLMENT_TYPE, PAYMENT_CURRENCY } from "./scripting"
+
 
 async function ensureContentScript(tabId) {
     await chrome.scripting.executeScript({
@@ -35,6 +37,9 @@ export default function App() {
 
         function onMessage(message, sender) {
             if (message.type === "FIELD_PICKED") {
+                // TEMP: log the selector so it can be copied out and hardcoded elsewhere
+                console.log(`[scan] ${message.key} ->`, message.selector)
+
                 setFieldValues((prev) => ({ ...prev, [message.key]: message.value }))
 
                 if (modeRef.current === "creating") {

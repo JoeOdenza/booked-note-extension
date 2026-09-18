@@ -93,6 +93,14 @@ header h1 {
     margin: 0;
 }
 
+.buttonRow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
 .layoutRow {
     display: flex;
     gap: 6px;

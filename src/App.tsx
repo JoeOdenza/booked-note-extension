@@ -15,6 +15,14 @@ async function ensureContentScript(tabId: number) {
     })
 }
 
+// Tabs where every layout scans into one shared field set instead of each layout keeping its own
+const SHARED_FIELD_TABS: TabKey[] = ["additional_bookednote_fields"]
+const SHARED_FIELD_DATA_KEY = "__shared__"
+
+function sharesFieldsAcrossLayouts(tab: TabKey) {
+    return SHARED_FIELD_TABS.includes(tab)
+}
+
 export default function App() {
     const [fieldValues, setFieldValues] = useState<FieldValues>({})
     const [layouts, setLayouts] = useState<Layouts>({})
@@ -33,18 +41,34 @@ export default function App() {
     }, [mode])
 
     useEffect(() => {
+        const isShared = sharesFieldsAcrossLayouts(activeTab)
         const activeLayoutName = mode === "creating" ? draftLayoutName : selectedLayout
-        if (!activeLayoutName) return
+        const dataKey = isShared ? SHARED_FIELD_DATA_KEY : activeLayoutName
+        if (!dataKey) return
 
         chrome.storage.local.get<StorageShape>("layoutData").then((stored) => {
-            const allData = { ...(stored.layoutData || {}), [activeLayoutName]: fieldValues }
+            const allData = { ...(stored.layoutData || {}) }
+            const tabData = { ...(allData[activeTab] || {}), [dataKey]: fieldValues }
+            allData[activeTab] = tabData
             chrome.storage.local.set({ layoutData: allData })
         })
-    }, [fieldValues, mode, selectedLayout, draftLayoutName])
+    }, [fieldValues, mode, selectedLayout, draftLayoutName, activeTab])
 
     useEffect(() => {
-        refreshLayouts()
+        refreshLayouts(activeTab)
+        setSelectedLayout("")
+        setHasHighlights(false)
 
+        if (sharesFieldsAcrossLayouts(activeTab)) {
+            chrome.storage.local.get<StorageShape>("layoutData").then((stored) => {
+                setFieldValues(stored.layoutData?.[activeTab]?.[SHARED_FIELD_DATA_KEY] || {})
+            })
+        } else {
+            setFieldValues({})
+        }
+    }, [activeTab])
+
+    useEffect(() => {
         function onMessage(message: any, sender: chrome.runtime.MessageSender) {
             if (message.type === "FIELD_PICKED") {
                 // TEMP: log the selector so it can be copied out and hardcoded elsewhere
@@ -71,13 +95,16 @@ export default function App() {
         return () => chrome.runtime.onMessage.removeListener(onMessage)
     }, [])
 
-    async function refreshLayouts() {
+    async function refreshLayouts(tab: TabKey) {
         const stored = await chrome.storage.local.get<StorageShape>("layouts")
-        setLayouts(stored.layouts || {})
+        setLayouts(stored.layouts?.[tab] || {})
     }
 
     async function handleSelectedLayoutChange(name: string) {
         setSelectedLayout(name)
+
+        // Shared-field tabs keep one field set regardless of which layout is selected
+        if (sharesFieldsAcrossLayouts(activeTab)) return
 
         if (!name) {
             setFieldValues({})
@@ -85,7 +112,7 @@ export default function App() {
         }
 
         const stored = await chrome.storage.local.get<StorageShape>("layoutData")
-        setFieldValues(stored.layoutData?.[name] || {})
+        setFieldValues(stored.layoutData?.[activeTab]?.[name] || {})
     }
 
     async function startScanning(key: string) {
@@ -130,6 +157,19 @@ export default function App() {
         setFieldValues({})
     }
 
+    async function handleStartNewBookedNote() {
+        setStatus("")
+        setSelectedLayout("")
+        setMode("idle")
+        setDraftLayoutName("")
+        setDraftLayout({})
+        setFieldValues({})
+        await handleClearHighlights()
+
+        // Clear scanned field data for every tab/layout, but leave the saved layouts (selector mappings) alone
+        await chrome.storage.local.set({ layoutData: {} })
+    }
+
     function handleNewLayout() {
         setStatus("")
         setLayoutNameDraft("")
@@ -148,25 +188,32 @@ export default function App() {
 
     async function handleSaveLayout() {
         const stored = await chrome.storage.local.get<StorageShape>("layouts")
-        const allLayouts = { ...(stored.layouts || {}), [draftLayoutName]: draftLayout }
+        const allLayouts = { ...(stored.layouts || {}) }
+        const tabLayouts = { ...(allLayouts[activeTab] || {}), [draftLayoutName]: draftLayout }
+        allLayouts[activeTab] = tabLayouts
 
         await chrome.storage.local.set({ layouts: allLayouts })
 
-        setLayouts(allLayouts)
+        setLayouts(tabLayouts)
         setSelectedLayout(draftLayoutName)
         setStatus("")
         setMode("idle")
     }
 
     async function handleCancelLayout() {
-        const stored = await chrome.storage.local.get<StorageShape>("layoutData")
-        const allData = { ...(stored.layoutData || {}) }
-        delete allData[draftLayoutName]
-        await chrome.storage.local.set({ layoutData: allData })
+        // Shared-field tabs keep whatever was scanned; only the in-progress layout mapping is discarded
+        if (!sharesFieldsAcrossLayouts(activeTab)) {
+            const stored = await chrome.storage.local.get<StorageShape>("layoutData")
+            const allData = { ...(stored.layoutData || {}) }
+            const tabData = { ...(allData[activeTab] || {}) }
+            delete tabData[draftLayoutName]
+            allData[activeTab] = tabData
+            await chrome.storage.local.set({ layoutData: allData })
+            setFieldValues({})
+        }
 
         setStatus("")
         setDraftLayout({})
-        setFieldValues({})
         setMode("idle")
     }
 
@@ -175,16 +222,26 @@ export default function App() {
 
         const stored = await chrome.storage.local.get<StorageShape>("layouts")
         const allLayouts = { ...(stored.layouts || {}) }
-        delete allLayouts[selectedLayout]
+        const tabLayouts = { ...(allLayouts[activeTab] || {}) }
+        delete tabLayouts[selectedLayout]
+        allLayouts[activeTab] = tabLayouts
 
-        const storedData = await chrome.storage.local.get<StorageShape>("layoutData")
-        const allData = { ...(storedData.layoutData || {}) }
-        delete allData[selectedLayout]
+        const isShared = sharesFieldsAcrossLayouts(activeTab)
+        if (isShared) {
+            await chrome.storage.local.set({ layouts: allLayouts })
+        } else {
+            const storedData = await chrome.storage.local.get<StorageShape>("layoutData")
+            const allData = { ...(storedData.layoutData || {}) }
+            const tabData = { ...(allData[activeTab] || {}) }
+            delete tabData[selectedLayout]
+            allData[activeTab] = tabData
 
-        await chrome.storage.local.set({ layouts: allLayouts, layoutData: allData })
-        setLayouts(allLayouts)
+            await chrome.storage.local.set({ layouts: allLayouts, layoutData: allData })
+        }
+
+        setLayouts(tabLayouts)
         setSelectedLayout("")
-        setFieldValues({})
+        if (!isShared) setFieldValues({})
     }
 
     const isIdle = mode === "idle"
@@ -196,7 +253,10 @@ export default function App() {
         <>
             <Header />
 
-            <button onClick={async () => await fillBookedNote({ kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD" })}>Fill BookNote</button>
+            <div className="buttonRow">
+                <button className="primary" onClick={async () => await fillBookedNote({ kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD" })}>Fill Booked Note</button>
+                <button onClick={handleStartNewBookedNote}>Start New Booked Note</button>
+            </div>
             {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
 
             <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">

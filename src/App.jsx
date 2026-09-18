@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { FIELD_SCHEMA } from "./schema"
 import FieldRow from "./FieldRow"
-import { getActiveTab } from "./scripting"
+import { getActiveTab, fillBookedNote, FULFILLMENT_TYPE, PAYMENT_CURRENCY } from "./scripting"
 
 
 async function ensureContentScript(tabId) {
@@ -31,6 +31,9 @@ export default function App() {
 
         function onMessage(message) {
             if (message.type === "FIELD_PICKED") {
+                // TEMP: log the selector so it can be copied out and hardcoded elsewhere
+                console.log(`[scan] ${message.key} ->`, message.selector)
+
                 setFieldValues((prev) => ({ ...prev, [message.key]: message.value }))
 
                 if (modeRef.current === "creating") {
@@ -136,6 +139,14 @@ export default function App() {
             <header>
                 <h1>BookedNotes</h1>
             </header>
+
+            <button onClick={() => fillBookedNote({
+                fulfillmentType: FULFILLMENT_TYPE.DIAMOND,
+                paymentCurrency: PAYMENT_CURRENCY.USD,
+                profitAndLoss: 154
+            })}>
+                Fill Booked Note
+            </button>
 
             <section className="panel">
                 <h2>Layout</h2>

@@ -124,6 +124,13 @@ header h1 {
     display: none;
 }
 
+.hintText {
+    font-style: italic;
+    color: var(--text-muted);
+    margin: 8px 0 0;
+    font-size: 12px;
+}
+
 input,
 select {
     font: inherit;

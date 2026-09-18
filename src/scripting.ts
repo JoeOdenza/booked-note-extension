@@ -6,15 +6,16 @@ export async function getActiveTab(): Promise<chrome.tabs.Tab> {
     return tab
 }
 
-// Field values are saved per-layout under the "layoutData" storage key
-// (see App.tsx's fieldValues-sync effect): layoutData[layoutName][fieldKey]. Storage itself
-// doesn't track which schema a layout was built from -- qualifiedKey ("schemaName.fieldKey")
-// exists purely so the caller has to name the schema they believe applies, catching the case
-// where you meant e.g. individualReservation.base_cost but typo'd/picked a key from another schema.
-export async function getFromLocalStore(layoutName: string, qualifiedKey: QualifiedFieldKey): Promise<string | undefined> {
+// Each reservation keeps its own field values under the "reservations" storage key
+// (see App.tsx's fieldValues-sync effect): reservations[reservationId].fieldValues[fieldKey].
+// Storage itself doesn't track which schema a reservation's fields came from -- qualifiedKey
+// ("schemaName.fieldKey") exists purely so the caller has to name the schema they believe
+// applies, catching the case where you meant e.g. individualReservation.base_cost but
+// typo'd/picked a key from another schema.
+export async function getFromLocalStore(reservationId: string, qualifiedKey: QualifiedFieldKey): Promise<string | undefined> {
     const key = qualifiedKey.split(".")[1]
-    const stored = await chrome.storage.local.get<StorageShape>("layoutData")
-    return stored.layoutData?.[layoutName]?.[key]
+    const stored = await chrome.storage.local.get<StorageShape>("reservations")
+    return stored.reservations?.[reservationId]?.fieldValues?.[key]
 }
 
 // Sets an input's value on the page and fires the events the page's own JS listens for.
@@ -231,9 +232,9 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
     await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", "06/06/2026")
 }
 
-export async function computeBookedNoteFieldsFromLocalStore(layoutName: string, customerPayment: number) {
-    const totalCostRaw = await getFromLocalStore(layoutName, "individualReservation.total_cost")
-    const commissionRaw = await getFromLocalStore(layoutName, "individualReservation.commission")
+export async function computeBookedNoteFieldsFromLocalStore(reservationId: string, customerPayment: number) {
+    const totalCostRaw = await getFromLocalStore(reservationId, "individualReservation.total_cost")
+    const commissionRaw = await getFromLocalStore(reservationId, "individualReservation.commission")
     const totalCost = Number(totalCostRaw)
     const commission = Number(commissionRaw ?? 0)
 

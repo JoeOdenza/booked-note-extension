@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from "react"
 import { SCHEMA_BY_TAB } from "./schema"
 import Header from "./components/Header"
 import LayoutPanel from "./components/LayoutPanel"
+import ReservationPanel from "./components/ReservationPanel"
 import FieldsPanel from "./components/FieldsPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getActiveTab, fillBookedNote, computeBookedNoteFieldsFromLocalStore } from "./scripting"
-import type { FieldValues, Layout, Layouts, Mode, StorageShape, TabKey } from "./types"
+import type { FieldValues, Layout, Layouts, Mode, Reservation, Reservations, StorageShape, TabKey } from "./types"
 
 
 async function ensureContentScript(tabId: number) {
@@ -23,6 +24,16 @@ function sharesFieldsAcrossLayouts(tab: TabKey) {
     return SHARED_FIELD_TABS.includes(tab)
 }
 
+// "reservation_1", "reservation_2", ... -- always the highest used number plus one, so a
+// deleted reservation's number is never reused and collides with nothing still stored.
+function getNextReservationId(existing: Reservations): string {
+    const usedNumbers = Object.keys(existing)
+        .map((key) => Number(key.match(/^reservation_(\d+)$/)?.[1]))
+        .filter((n) => !Number.isNaN(n))
+    const next = usedNumbers.length ? Math.max(...usedNumbers) + 1 : 1
+    return `reservation_${next}`
+}
+
 export default function App() {
     const [fieldValues, setFieldValues] = useState<FieldValues>({})
     const [layouts, setLayouts] = useState<Layouts>({})
@@ -35,12 +46,55 @@ export default function App() {
     const [hasHighlights, setHasHighlights] = useState(false)
     const [activeTab, setActiveTab] = useState<TabKey>("reservations")
 
+    const [reservations, setReservations] = useState<Reservations>({})
+    const [activeReservationId, setActiveReservationId] = useState("")
+    const [isAddingReservation, setIsAddingReservation] = useState(false)
+    const [reservationLabelDraft, setReservationLabelDraft] = useState("")
+
+    // Every read-modify-write against the "reservations" storage key runs through this queue,
+    // chained onto the previous write. Without it, two independent updates (e.g. a fieldValues
+    // save and a layoutName save firing close together) can both read storage before either has
+    // written back, so whichever writes last silently overwrites the other's change.
+    const reservationsWriteQueueRef = useRef<Promise<void>>(Promise.resolve())
+
+    function queueReservationsUpdate(mutate: (current: Reservations) => Reservations | null) {
+        const next = reservationsWriteQueueRef.current.then(async () => {
+            const stored = await chrome.storage.local.get<StorageShape>("reservations")
+            const updated = mutate(stored.reservations || {})
+            if (!updated) return
+
+            await chrome.storage.local.set({ reservations: updated })
+            setReservations(updated)
+        })
+
+        reservationsWriteQueueRef.current = next
+        return next
+    }
+
     const modeRef = useRef(mode)
     useEffect(() => {
         modeRef.current = mode
     }, [mode])
 
     useEffect(() => {
+        refreshReservations()
+    }, [])
+
+    // Reservations own their field values in their own storage slot, independent of whichever
+    // layout they're using to scan -- so two reservations can share a layout without colliding.
+    useEffect(() => {
+        if (activeTab === "reservations") {
+            if (!activeReservationId) return
+
+            queueReservationsUpdate((current) => {
+                const reservation = current[activeReservationId]
+                if (!reservation) return null
+
+                return { ...current, [activeReservationId]: { ...reservation, fieldValues } }
+            })
+            return
+        }
+
         const isShared = sharesFieldsAcrossLayouts(activeTab)
         const activeLayoutName = mode === "creating" ? draftLayoutName : selectedLayout
         const dataKey = isShared ? SHARED_FIELD_DATA_KEY : activeLayoutName
@@ -52,14 +106,19 @@ export default function App() {
             allData[activeTab] = tabData
             chrome.storage.local.set({ layoutData: allData })
         })
-    }, [fieldValues, mode, selectedLayout, draftLayoutName, activeTab])
+    }, [fieldValues, mode, selectedLayout, draftLayoutName, activeTab, activeReservationId])
 
     useEffect(() => {
         refreshLayouts(activeTab)
         setSelectedLayout("")
         setHasHighlights(false)
+        setIsAddingReservation(false)
+        setReservationLabelDraft("")
 
-        if (sharesFieldsAcrossLayouts(activeTab)) {
+        if (activeTab === "reservations") {
+            setActiveReservationId("")
+            setFieldValues({})
+        } else if (sharesFieldsAcrossLayouts(activeTab)) {
             chrome.storage.local.get<StorageShape>("layoutData").then((stored) => {
                 setFieldValues(stored.layoutData?.[activeTab]?.[SHARED_FIELD_DATA_KEY] || {})
             })
@@ -100,8 +159,22 @@ export default function App() {
         setLayouts(stored.layouts?.[tab] || {})
     }
 
+    async function refreshReservations() {
+        const stored = await chrome.storage.local.get<StorageShape>("reservations")
+        setReservations(stored.reservations || {})
+    }
+
     async function handleSelectedLayoutChange(name: string) {
         setSelectedLayout(name)
+
+        // On the Reservations tab, a layout is just which selectors to Scan/Apply with --
+        // field values live on the active reservation, not the layout, so just remember the choice.
+        if (activeTab === "reservations") {
+            if (activeReservationId) {
+                await updateActiveReservationLayout(name)
+            }
+            return
+        }
 
         // Shared-field tabs keep one field set regardless of which layout is selected
         if (sharesFieldsAcrossLayouts(activeTab)) return
@@ -113,6 +186,82 @@ export default function App() {
 
         const stored = await chrome.storage.local.get<StorageShape>("layoutData")
         setFieldValues(stored.layoutData?.[activeTab]?.[name] || {})
+    }
+
+    function updateActiveReservationLayout(layoutName: string) {
+        return queueReservationsUpdate((current) => {
+            const reservation = current[activeReservationId]
+            if (!reservation) return null
+
+            return { ...current, [activeReservationId]: { ...reservation, layoutName } }
+        })
+    }
+
+    async function handleSelectedReservationChange(id: string) {
+        setActiveReservationId(id)
+
+        if (!id) {
+            setFieldValues({})
+            setSelectedLayout("")
+            return
+        }
+
+        const stored = await chrome.storage.local.get<StorageShape>("reservations")
+        const reservation = stored.reservations?.[id]
+        setFieldValues(reservation?.fieldValues || {})
+        setSelectedLayout(reservation?.layoutName || "")
+    }
+
+    function handleStartAddReservation() {
+        setStatus("")
+        setReservationLabelDraft("")
+        setIsAddingReservation(true)
+    }
+
+    function handleCancelAddReservation() {
+        setIsAddingReservation(false)
+        setReservationLabelDraft("")
+    }
+
+    async function handleCreateReservation() {
+        const label = reservationLabelDraft.trim()
+        if (!label) return
+
+        let newId = ""
+        await queueReservationsUpdate((current) => {
+            newId = getNextReservationId(current)
+            const reservation: Reservation = {
+                id: newId,
+                label,
+                layoutName: selectedLayout,
+                fieldValues: {},
+                createdAt: Date.now()
+            }
+            return { ...current, [newId]: reservation }
+        })
+
+        setActiveReservationId(newId)
+        setFieldValues({})
+        setIsAddingReservation(false)
+        setReservationLabelDraft("")
+    }
+
+    async function handleDeleteReservation() {
+        if (!activeReservationId) return
+
+        const label = reservations[activeReservationId]?.label ?? "this reservation"
+        if (!window.confirm(`Delete "${label}"? This can't be undone.`)) return
+
+        const idToDelete = activeReservationId
+        await queueReservationsUpdate((current) => {
+            const updated = { ...current }
+            delete updated[idToDelete]
+            return updated
+        })
+
+        setActiveReservationId("")
+        setFieldValues({})
+        setSelectedLayout("")
     }
 
     async function startScanning(key: string) {
@@ -164,10 +313,13 @@ export default function App() {
         setDraftLayoutName("")
         setDraftLayout({})
         setFieldValues({})
+        setActiveReservationId("")
         await handleClearHighlights()
 
-        // Clear scanned field data for every tab/layout, but leave the saved layouts (selector mappings) alone
+        // Clear scanned field data for every tab/layout and every saved reservation, but leave
+        // the saved layouts (selector mappings) alone -- those are reusable templates, not data
         await chrome.storage.local.set({ layoutData: {} })
+        await queueReservationsUpdate(() => ({}))
     }
 
     function handleNewLayout() {
@@ -198,11 +350,16 @@ export default function App() {
         setSelectedLayout(draftLayoutName)
         setStatus("")
         setMode("idle")
+
+        if (activeTab === "reservations" && activeReservationId) {
+            await updateActiveReservationLayout(draftLayoutName)
+        }
     }
 
     async function handleCancelLayout() {
-        // Shared-field tabs keep whatever was scanned; only the in-progress layout mapping is discarded
-        if (!sharesFieldsAcrossLayouts(activeTab)) {
+        // Reservations and shared-field tabs keep whatever was scanned; only the in-progress
+        // layout mapping is discarded, since field values don't live under the layout's name there
+        if (activeTab !== "reservations" && !sharesFieldsAcrossLayouts(activeTab)) {
             const stored = await chrome.storage.local.get<StorageShape>("layoutData")
             const allData = { ...(stored.layoutData || {}) }
             const tabData = { ...(allData[activeTab] || {}) }
@@ -226,8 +383,8 @@ export default function App() {
         delete tabLayouts[selectedLayout]
         allLayouts[activeTab] = tabLayouts
 
-        const isShared = sharesFieldsAcrossLayouts(activeTab)
-        if (isShared) {
+        const fieldsOwnedElsewhere = activeTab === "reservations" || sharesFieldsAcrossLayouts(activeTab)
+        if (fieldsOwnedElsewhere) {
             await chrome.storage.local.set({ layouts: allLayouts })
         } else {
             const storedData = await chrome.storage.local.get<StorageShape>("layoutData")
@@ -239,9 +396,13 @@ export default function App() {
             await chrome.storage.local.set({ layouts: allLayouts, layoutData: allData })
         }
 
+        // The dropdown stays synced to the active reservation's layout, so deleting the
+        // currently-selected layout always means clearing that reservation's reference to it
+        const shouldClearReservationLayout = activeTab === "reservations" && !!activeReservationId
         setLayouts(tabLayouts)
         setSelectedLayout("")
-        if (!isShared) setFieldValues({})
+        if (!fieldsOwnedElsewhere) setFieldValues({})
+        if (shouldClearReservationLayout) await updateActiveReservationLayout("")
     }
 
     const isIdle = mode === "idle"
@@ -275,6 +436,21 @@ export default function App() {
             <TabsContent value="reservations">Make changes to your account here.</TabsContent>
             <TabsContent value="odenzareg">Change your password here.</TabsContent>
             </Tabs>
+
+            {activeTab === "reservations" && (
+                <ReservationPanel
+                    reservations={reservations}
+                    activeReservationId={activeReservationId}
+                    onSelectedReservationChange={handleSelectedReservationChange}
+                    isAdding={isAddingReservation}
+                    reservationLabelDraft={reservationLabelDraft}
+                    onReservationLabelDraftChange={setReservationLabelDraft}
+                    onStartAddReservation={handleStartAddReservation}
+                    onCreateReservation={handleCreateReservation}
+                    onCancelAddReservation={handleCancelAddReservation}
+                    onDeleteReservation={handleDeleteReservation}
+                />
+            )}
 
             <LayoutPanel
                 layouts={layouts}

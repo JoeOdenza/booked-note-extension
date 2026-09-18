@@ -254,11 +254,18 @@ export default function App() {
             <Header />
 
             <div className="buttonRow">
-                <button className="primary" onClick={async () => await fillBookedNote({ kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD" })}>Fill Booked Note</button>
+                
+                <button className = "primary" onClick={async () => {
+                    await fillBookedNote({
+                        kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD"
+                    });
+                    await computeBookedNoteFieldsFromLocalStore('RCI', 200);
+                }}>Fill Booked Note</button>
+                {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
+
                 <button onClick={handleStartNewBookedNote}>Start New Booked Note</button>
             </div>
-            {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
-
+            
             <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
             <TabsList>
                 <TabsTrigger value="reservations">Reservations</TabsTrigger>
@@ -288,14 +295,6 @@ export default function App() {
                 draftLayoutName={draftLayoutName}
                 status={status}
             />
-
-            <button onClick={async () => {
-                await fillBookedNote({
-                    kind: "loss", lossAmount: 123, fulfillmentType: "RCI", paymentCurrency: "USD"
-                });
-                await computeBookedNoteFieldsFromLocalStore('RCI', 200);
-            }}>Fill BookNote</button>
-            {/* <button onClick={async () => await fillBookedNote({ kind: "profit", profitAmount: 123,  paymentCurrency: "USD" })}>Fill BookNote</button> */}
 
             <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-[400px]">
                 <TabsList>

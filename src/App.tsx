@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react"
-import { SCHEMA_BY_TAB } from "./schema"
+import { SCHEMA_BY_TAB, SHARED_FIELD_DATA_KEY, SHARED_FIELD_TABS } from "./schema"
 import Header from "./components/Header"
 import LayoutPanel from "./components/LayoutPanel"
 import ReservationPanel from "./components/ReservationPanel"
 import FieldsPanel from "./components/FieldsPanel"
 import ResCard from "./components/ResCard"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getActiveTab, fillBookedNote, computeBookedNoteFieldsFromLocalStore } from "./scripting"
+import { getActiveTab, fillBookedNote, computeBookedNoteFieldsFromLocalStore, matchGroupTypeAndMarketingSource } from "./scripting"
 import type { FieldValues, Layout, Layouts, Mode, Reservation, Reservations, StorageShape, TabKey } from "./types"
 
 
@@ -16,10 +16,6 @@ async function ensureContentScript(tabId: number) {
         files: ["content.js"]
     })
 }
-
-// Tabs where every layout scans into one shared field set instead of each layout keeping its own
-const SHARED_FIELD_TABS: TabKey[] = ["additional_bookednote_fields"]
-const SHARED_FIELD_DATA_KEY = "__shared__"
 
 function sharesFieldsAcrossLayouts(tab: TabKey) {
     return SHARED_FIELD_TABS.includes(tab)
@@ -119,6 +115,12 @@ export default function App() {
             allData[activeTab] = tabData
             chrome.storage.local.set({ layoutData: allData })
         })
+
+        // As soon as the OdenzaReg certificate code is known, stamp its matching Marketing
+        // Source/Group Code into the Res Card's own storage slot (ResCard listens for the change).
+        if (activeTab === "odenzareg" && fieldValues.certificate_code) {
+            matchGroupTypeAndMarketingSource(fieldValues.certificate_code)
+        }
     }, [fieldValues, mode, selectedLayout, draftLayoutName, activeTab, activeReservationId])
 
     useEffect(() => {

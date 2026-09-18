@@ -1,9 +1,13 @@
 import type { Field, TabKey } from "./types"
 
+// Tabs where every layout scans into one shared field set instead of each layout keeping its own
+export const SHARED_FIELD_TABS: TabKey[] = ["additional_bookednote_fields"]
+export const SHARED_FIELD_DATA_KEY = "__shared__"
+
 // Unused - For individual reservations later
 export const INDIVIDUAL_RESERVATION_SCHEMA = [
     { key: "vendor_name", label: "Vendor Name"},
-    { key: "confirmation_no", label: "Confirmation Number" },
+    { key: "confirmation_num", label: "Confirmation Number" },
     { key: "record_locator", label: "Record Locator" },
     { key: "name", label: "Name"},
     { key: "additional_guest_name", label: "Companion Name"},
@@ -91,6 +95,7 @@ export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
 
 export const RES_CARD_SCHEMA: Field[] = [
     { key: "trip_name", label: "Trip Name"},
+    { key: "marketing_source", label: "Marketing Source"},
     { key: "group_type", label: "Group Type"},
     { key: "branch_num", label: "Branch No."},
     { key: "locator_num", label: "Locator Num"},

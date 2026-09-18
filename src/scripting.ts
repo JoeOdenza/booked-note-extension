@@ -1,5 +1,25 @@
 import type { QualifiedFieldKey } from "./schema"
 import type { StorageShape } from "./types"
+import groupNamesData from "./res_card_group_names.json"
+
+// One row of res_card_group_names.json -- a lookup table from cert program code to the
+// Res Card's Marketing Source/Group Code, exported (messily) straight from a spreadsheet, so
+// most rows besides "Program" are blank filler rows that only exist to group the ones above them.
+interface GroupNameEntry {
+    Program: string
+    "Marketing Source": string
+    "Group Code": string
+    "Commission Tracker Category": string
+    Incentive: string
+}
+
+const GROUP_NAME_ENTRIES = groupNamesData as GroupNameEntry[]
+
+// Cert codes mix in numbers (e.g. batch/version digits) that aren't part of the program
+// identifier itself, so only the letters are meaningful for matching against Program.
+function lettersOnly(value: string): string {
+    return value.replace(/[0-9]/g, "").trim().toUpperCase()
+}
 
 export async function getActiveTab(): Promise<chrome.tabs.Tab> {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -254,4 +274,22 @@ export async function computeBookedNoteFieldsFromLocalStore(reservationId: strin
     console.log({ totalCost, commission, customerPayment, diff, profitAndLoss, agentMarkup })
 
     return { profitAndLoss, agentMarkup }
+}
+
+// function to match res card group names with certificate letters, stored back into chrome storage for res card detection
+export async function matchGroupTypeAndMarketingSource(certificateCode: string) {
+    const normalizedCode = lettersOnly(certificateCode)
+    if (!normalizedCode) return
+
+    const match = GROUP_NAME_ENTRIES.find((entry) => lettersOnly(entry.Program) === normalizedCode)
+    if (!match) return
+
+    const stored = await chrome.storage.local.get<StorageShape>("resCardFieldValues")
+    const resCardFieldValues = {
+        ...stored.resCardFieldValues,
+        marketing_source: match["Marketing Source"],
+        group_type: match["Group Code"]
+    }
+
+    await chrome.storage.local.set({ resCardFieldValues })
 }

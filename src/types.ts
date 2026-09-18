@@ -37,4 +37,8 @@ export interface StorageShape {
     layouts: LayoutsByTab
     layoutData?: LayoutDataByTab
     reservations?: Reservations
+    // Fields on the Res Card's own "resCard" tab (trip_name, marketing_source, group_type, ...) --
+    // these describe the card/cert as a whole, not any single reservation under it, so they get
+    // their own storage slot instead of living on a reservation's fieldValues.
+    resCardFieldValues?: FieldValues
 }

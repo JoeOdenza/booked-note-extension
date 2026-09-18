@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { SCHEMA_BY_TAB, FIELD_SCHEMA } from "./schema"
+import { SCHEMA_BY_TAB } from "./schema"
 import Header from "./components/Header"
 import LayoutPanel from "./components/LayoutPanel"
 import FieldsPanel from "./components/FieldsPanel"
@@ -189,7 +189,8 @@ export default function App() {
 
     const isIdle = mode === "idle"
     const paymentCount = Number(fieldValues.paymentCount) || 0
-    const activeSchema = SCHEMA_BY_TAB[activeTab] || FIELD_SCHEMA
+    const additionalTravelerCount = Number(fieldValues.additional_travelers_num) || 0
+    const activeSchema = SCHEMA_BY_TAB[activeTab]
 
     return (
         <>
@@ -241,6 +242,8 @@ export default function App() {
                 onScan={startScanning}
                 onReset={handleReset}
                 showPaymentFields={activeTab === "reservations"}
+                showAdditionalTravelerFields={activeTab === "additional_bookednote_fields"}
+                additionalTravelerCount={additionalTravelerCount}
             />
         </>
     )

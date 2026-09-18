@@ -19,6 +19,12 @@ export default function FieldRow({ field, value, onChange, onScan }: FieldRowPro
                         <option key={option} value={option}>{option}</option>
                     ))}
                 </select>
+            ) : field.type === "checkbox" ? (
+                <input
+                    type="checkbox"
+                    checked={value === "true"}
+                    onChange={(e) => onChange(e.target.checked ? "true" : "false")}
+                />
             ) : (
                 <>
                     <input

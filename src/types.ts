@@ -1,7 +1,7 @@
 export interface Field {
     key: string
     label: string
-    type?: "select"
+    type?: "select" | "checkbox"
     options?: (string | number)[]
 }
 

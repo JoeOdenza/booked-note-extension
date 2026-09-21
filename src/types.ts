@@ -1,44 +1,14 @@
-export interface Field {
-    key: string
-    label: string
-    type?: "select" | "checkbox"
-    options?: (string | number)[]
+export type PageEntry = {
+    capturedAt: number
+    [field: string]: unknown
 }
 
-export type FieldValues = Record<string, string>
+export type Pages = Record<string, PageEntry>
 
-export type Layout = Record<string, string>
-export type Layouts = Record<string, Layout>
-export type LayoutData = Record<string, FieldValues>
-
-export type Mode = "idle" | "naming" | "creating"
-
-export type TabKey = "reservations" | "odenzareg" | "additional_bookednote_fields"
-
-export type ResCardTabKey = "resCard" | "reservations" | "additionalTravler"
-
-export type LayoutsByTab = Record<TabKey, Layouts>
-export type LayoutDataByTab = Record<TabKey, LayoutData>
-
-// A single saved reservation: its own field values, plus which saved Layout (selector mapping)
-// it uses for Scan/Apply. Two reservations can share the same layoutName -- the layout stays a
-// reusable template, while each reservation keeps its data in its own slot below.
-export interface Reservation {
-    id: string
-    label: string
-    layoutName: string
-    fieldValues: FieldValues
-    createdAt: number
-}
-
-export type Reservations = Record<string, Reservation>
-
-export interface StorageShape {
-    layouts: LayoutsByTab
-    layoutData?: LayoutDataByTab
-    reservations?: Reservations
-    // Fields on the Res Card's own "resCard" tab (trip_name, marketing_source, group_type, ...) --
-    // these describe the card/cert as a whole, not any single reservation under it, so they get
-    // their own storage slot instead of living on a reservation's fieldValues.
-    resCardFieldValues?: FieldValues
+// Sent from the content script (reader.ts) to the service worker, which owns writing
+// to chrome.storage.local -- keeps content scripts from touching storage directly.
+export interface PageCapturedMessage {
+    type: "PAGE_CAPTURED"
+    url: string
+    info: Record<string, unknown>
 }

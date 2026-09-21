@@ -10,12 +10,18 @@
     "128": "extension.png"
   },
   "background": {
-    "service_worker": "service-worker.js"
+    "service_worker": "src/service-worker.ts"
   },
   "action": {},
   "side_panel": {
     "default_path": "sidepanel.html"
   },
   "permissions": ["scripting", "activeTab", "storage", "sidePanel"],
-  "host_permissions": ["<all_urls>"]
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.mywebrez.com/odenza2/*"],
+      "js": ["src/reader.ts"]
+    }
+  ]
 }

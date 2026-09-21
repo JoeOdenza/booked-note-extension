@@ -10,46 +10,6 @@ function humanize(field: string): string {
     .replace(/^./, (c) => c.toUpperCase())
 }
 
-function AuthFormUploader() {
-
-  const [file, setFile] = useState<File | null>(null)
-
-  function handleFileChange (e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) {
-      setFile(e.target.files[0])
-    }
-  }
-
-  async function handleUpload() {
-
-  }
-
-  return(
-    <>
-      <div className="input-group">
-        <input id="file" type="file" onChange={handleFileChange} />
-      </div>
-      {file && (
-        <section>
-          File details:
-          <ul>
-            <li>Name: {file.name}</li>
-            <li>Type: {file.type}</li>
-            <li>Size: {file.size} bytes</li>
-          </ul>
-        </section>
-      )}
-
-      {file && (
-        <button 
-          onClick={handleUpload}
-          className="submit"
-        >Upload a file</button>
-      )}
-    </>
-  )
-}
-
 function App() {
   const [latest, setLatest] = useState<(PageEntry & { url: string }) | null>(null)
 

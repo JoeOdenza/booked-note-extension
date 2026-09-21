@@ -20,7 +20,7 @@
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
-      "matches": ["https://www.mywebrez.com/odenza2/*"],
+      "matches": ["https://www.mywebrez.com/odenza2/*", "file:///C:/Users/joe/Downloads/view-hold.htm"],
       "js": ["src/reader.ts"]
     }
   ]

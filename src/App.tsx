@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { findMatchingSite } from './site-config'
 import { getPages } from './storage'
 import type { PageEntry } from './types'
+import AuthFormUploader from './components/AuthFormUploader'
 
 function humanize(field: string): string {
   return field

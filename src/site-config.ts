@@ -21,6 +21,17 @@ export const config: SiteConfig[] = [
     pathname: '',
     includes: ['view-hold'],
     extract: {
+      confirmationNumber: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.res-information-container > div:nth-child(3) > p:nth-child(1) > span',
+      clientName: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.find-my-reservation-container > div > div > p:nth-child(1)',
+      clientAddress: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.find-my-reservation-container > div > div > p:nth-child(2)',
+      clientPhone: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.find-my-reservation-container > div > div > p:nth-child(3)',
+      clientEmail: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.find-my-reservation-container > div > div > p:nth-child(4)',
+      tripProperty: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.res-information-container > div:nth-child(3) > p:nth-child(1) > span',
+      tripLocation: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div.summary-resort-details-container > p.resort-location',
+      checkInDate: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(4) > span',
+      checkOutDate: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(4) > span',
+      basePrice: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(4) > span',
+      taxes: 'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(4) > span',
       finalAmount:
         'body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-4 > div > div.trip-summary-container.js-trip-summary-container > div.summary-final-item > div.summary-final-item-amount'
     }, 

@@ -9,6 +9,46 @@ function humanize(field: string): string {
     .replace(/^./, (c) => c.toUpperCase())
 }
 
+function AuthFormUploader() {
+
+  const [file, setFile] = useState<File | null>(null)
+
+  function handleFileChange (e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) {
+      setFile(e.target.files[0])
+    }
+  }
+
+  async function handleUpload() {
+
+  }
+
+  return(
+    <>
+      <div className="input-group">
+        <input id="file" type="file" onChange={handleFileChange} />
+      </div>
+      {file && (
+        <section>
+          File details:
+          <ul>
+            <li>Name: {file.name}</li>
+            <li>Type: {file.type}</li>
+            <li>Size: {file.size} bytes</li>
+          </ul>
+        </section>
+      )}
+
+      {file && (
+        <button 
+          onClick={handleUpload}
+          className="submit"
+        >Upload a file</button>
+      )}
+    </>
+  )
+}
+
 function App() {
   const [latest, setLatest] = useState<(PageEntry & { url: string }) | null>(null)
 
@@ -28,23 +68,26 @@ function App() {
   const fields = site ? Object.keys(site.extract) : []
 
   return (
-    <div style={{ width: 240, padding: 16 }}>
-      <h1 style={{ fontSize: '1.1rem', margin: '0 0 8px' }}>Booked Note</h1>
-      {latest ? (
-        <div>
-          {fields.map((field) => (
-            <p key={field} style={{ margin: '4px 0' }}>
-              {humanize(field)}: <strong>{String(latest[field] ?? '—')}</strong>
+    <>
+      <div style={{ width: 240, padding: 16 }}>
+        <h1 style={{ fontSize: '1.1rem', margin: '0 0 8px' }}>Booked Note</h1>
+        {latest ? (
+          <div>
+            {fields.map((field) => (
+              <p key={field} style={{ margin: '4px 0' }}>
+                {humanize(field)}: <strong>{String(latest[field] ?? '—')}</strong>
+              </p>
+            ))}
+            <p style={{ margin: '4px 0', fontSize: '0.8rem', color: '#666' }}>
+              {new Date(latest.capturedAt).toLocaleString()}
             </p>
-          ))}
-          <p style={{ margin: '4px 0', fontSize: '0.8rem', color: '#666' }}>
-            {new Date(latest.capturedAt).toLocaleString()}
-          </p>
-        </div>
-      ) : (
-        <p style={{ fontSize: '0.9rem', color: '#666' }}>No captures yet</p>
-      )}
-    </div>
+          </div>
+        ) : (
+          <p style={{ fontSize: '0.9rem', color: '#666' }}>No captures yet</p>
+        )}
+      </div>
+      <AuthFormUploader />
+    </>
   )
 }
 

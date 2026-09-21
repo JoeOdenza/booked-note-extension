@@ -2,52 +2,12 @@ import { useEffect, useState } from 'react'
 import { findMatchingSite } from './site-config'
 import { getPages } from './storage'
 import type { PageEntry } from './types'
-import mockAuthForm from '../mock-auth-form.json'
+import AuthFormUploader from './components/AuthFormUploader'
 
 function humanize(field: string): string {
   return field
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/^./, (c) => c.toUpperCase())
-}
-
-function AuthFormUploader() {
-
-  const [file, setFile] = useState<File | null>(null)
-
-  function handleFileChange (e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) {
-      setFile(e.target.files[0])
-    }
-  }
-
-  async function handleUpload() {
-    console.log(mockAuthForm)
-  }
-
-  return(
-    <>
-      <div className="input-group">
-        <input id="file" type="file" onChange={handleFileChange} />
-      </div>
-      {file && (
-        <section>
-          File details:
-          <ul>
-            <li>Name: {file.name}</li>
-            <li>Type: {file.type}</li>
-            <li>Size: {file.size} bytes</li>
-          </ul>
-        </section>
-      )}
-
-      {file && (
-        <button 
-          onClick={handleUpload}
-          className="submit"
-        >Upload a file</button>
-      )}
-    </>
-  )
 }
 
 function App() {

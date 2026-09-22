@@ -9,6 +9,7 @@ import { pageToPdf, base64ToFile, extractPageDataWithClaude } from './logic/read
 import mockClaudeData from './data/mockClaudeData.json'
 import { Switch } from './components/ui/switch'
 import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
+import { fillBookedNote } from './scripting'
 
 function humanize(field: string): string {
   return field
@@ -79,6 +80,16 @@ function App() {
         </button>
         <button onClick={() => pageToPdf().then(console.log)}>
           Print PDF Data
+        </button>
+        <button onClick={() => fillBookedNote({
+          kind: "loss" ,
+          paymentCurrency: "USD",
+          lossAmount: 300,
+          fulfillmentType: "RCI",
+          depositAmount: 100,
+          inHouseChargeAmount: 279.99
+        })}>
+          Fill booked note
         </button>
         <button
           onClick={async () => {

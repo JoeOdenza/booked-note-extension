@@ -1,5 +1,5 @@
 import { findMatchingSite } from "./site-config";
-import type { PageCapturedMessage } from "./types";
+import type { ContentScriptMessage } from "./types";
 import { localStore, DEFAULT_EXTRACTION_MODE } from "./logic/storage";
 import { extractPageDataFromDom } from "./logic/dom";
 
@@ -16,33 +16,36 @@ async function run() {
   const extractionMode =
     (await localStore.get("extractionMode")) ?? DEFAULT_EXTRACTION_MODE;
   console.log("extraction mode", extractionMode);
+
   switch (extractionMode) {
-    case "claude": {
-      return console.log("claude mode");
-    }
+    case "claude":
+      // chrome.tabs / chrome.debugger aren't available inside a content script -- ask the
+      // privileged service worker to run Claude-mode extraction on this tab instead.
+      chrome.runtime.sendMessage({
+        type: "EXTRACT_CLAUDE",
+      } satisfies ContentScriptMessage);
+      break;
 
     case "dom": {
-      const info = extractPageDataFromDom({
+      const data = extractPageDataFromDom({
         confirmationNumber:
           "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.res-information-container > div:nth-child(3) > p:nth-child(1) > span",
         resortName: "p.resort-name",
         checkInDate:
           "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(4) > span",
         checkOutDate:
-          "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(4) > span",
+          "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(5) > span",
         odenzaPrice:
           "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-4 > div > div.trip-summary-container.js-trip-summary-container > div.summary-final-item > div.summary-final-item-amount",
         paymentCurrency:
           "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(7)",
       });
-      console.log(info);
-      const message: PageCapturedMessage = {
-        type: "PAGE_CAPTURED",
-        url: location.href,
-        info,
-      };
 
-      return chrome.runtime.sendMessage(message);
+      chrome.runtime.sendMessage({
+        type: "PAGE_DATA",
+        data,
+      } satisfies ContentScriptMessage);
+      break;
     }
 
     default: {

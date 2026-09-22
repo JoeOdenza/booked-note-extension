@@ -1,26 +1,35 @@
-import { localStore } from "./logic/storage";
-import type { PageCapturedMessage } from "./types";
+import { localStore, type PageDataSchema } from "./logic/storage";
+import { extractPageDataWithClaude } from "./logic/reader";
+import type { ContentScriptMessage } from "./types";
 
 // With no default_popup, clicking the toolbar icon opens the side panel instead
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-chrome.runtime.onMessage.addListener((message: PageCapturedMessage) => {
-  if (message.type !== "PAGE_CAPTURED") return;
-  const {
-    checkInDate,
-    checkOutDate,
-    confirmationNumber,
-    odenzaPrice,
-    paymentCurrency,
-    resortName,
-  } = message.info;
+function savePageData(data: PageDataSchema) {
+  for (const [key, value] of Object.entries(data) as [
+    keyof PageDataSchema,
+    string,
+  ][]) {
+    console.log(key, value);
+    localStore.set(key, value);
+  }
+}
 
-  localStore.set("checkInDate", checkInDate);
-  localStore.set("checkOutDate", checkOutDate);
-  localStore.set("confirmationNumber", confirmationNumber);
-  localStore.set("odenzaPrice", odenzaPrice);
-  localStore.set("paymentCurrency", paymentCurrency);
-  localStore.set("resortName", resortName);
-});
+chrome.runtime.onMessage.addListener(
+  (message: ContentScriptMessage, sender) => {
+    switch (message.type) {
+      case "PAGE_DATA":
+        savePageData(message.data);
+        break;
+
+      case "EXTRACT_CLAUDE": {
+        const tabId = sender.tab?.id;
+        if (tabId == null) return;
+        extractPageDataWithClaude(tabId).then(savePageData);
+        break;
+      }
+    }
+  },
+);

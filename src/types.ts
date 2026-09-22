@@ -15,6 +15,22 @@ export interface PageCapturedMessage {
     info: PageDataSchema
 }
 
+// DOM-mode already has the data (extracted in the content script's own page context) and
+// just hands it over. Claude-mode can't run itself in a content script -- chrome.tabs and
+// chrome.debugger, which extractPageDataWithClaude needs, are only available in a privileged
+// context (the service worker, here) -- so it sends a bare request instead and lets the
+// service worker extract using the sender tab's own id.
+export interface PageDataMessage {
+    type: "PAGE_DATA"
+    data: PageDataSchema
+}
+
+export interface ExtractClaudeMessage {
+    type: "EXTRACT_CLAUDE"
+}
+
+export type ContentScriptMessage = PageDataMessage | ExtractClaudeMessage
+
 export interface Field {
     key: string
     label: string

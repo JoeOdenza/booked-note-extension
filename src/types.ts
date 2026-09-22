@@ -12,3 +12,15 @@ export interface PageCapturedMessage {
     url: string
     info: Record<string, unknown>
 }
+
+export interface Field {
+    key: string
+    label: string
+    type?: "select" | "checkbox"
+    options?: (string | number)[]
+}
+
+export type FieldValues = Record<string, string>
+
+
+export type ResCardTabKey = "resCard" | "reservations" | "additionalTravler

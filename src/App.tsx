@@ -3,6 +3,7 @@ import { findMatchingSite } from './site-config'
 import { getPages } from './storage'
 import type { PageEntry } from './types'
 import AuthFormUploader from './components/AuthFormUploader'
+import ResCardPanel from './components/ResCardPanel'
 import { askClaude, askClaudeWithFile } from './logic/claude'
 import { pageToPdf, base64ToFile } from './logic/reader'
 
@@ -32,7 +33,7 @@ function App() {
 
   return (
     <>
-      <div style={{ width: 240, padding: 16 }}>
+      {/* <div style={{ width: 240, padding: 16 }}>
         <h1 style={{ fontSize: '1.1rem', margin: '0 0 8px' }}>Booked Note</h1>
         {latest ? (
           <div>
@@ -68,7 +69,8 @@ function App() {
           Describe PDF with Claude
         </button>
       </div>
-      <AuthFormUploader />
+      <AuthFormUploader /> */}
+      <ResCardPanel />
     </>
   )
 }

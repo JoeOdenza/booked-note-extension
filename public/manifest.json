@@ -33,7 +33,7 @@
         "file:///C:/Users/*/Downloads/view-hold.htm"
       ],
       "js": [
-        "src/reader.ts"
+        "src/index.ts"
       ]
     }
   ]

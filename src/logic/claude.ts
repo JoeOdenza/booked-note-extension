@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
+import type { PageDataSchema } from "./storage"
 
 // dangerouslyAllowBrowser ships this key inside the extension's own bundle, readable by
 // anyone who inspects/unpacks it -- fine while this stays local/internal-only, but revisit
@@ -19,6 +20,20 @@ export async function askClaude(prompt: string): Promise<string> {
         .filter((block) => block.type === "text")
         .map((block) => block.text)
         .join("")
+}
+
+// Builds the extraction prompt from a page's field list -- tells Claude exactly which keys
+// to return and nothing else, so the response can be JSON.parse'd straight into PageDataSchema.
+export function buildExtractionPrompt(fields: { key: keyof PageDataSchema; description: string }[]): string {
+    const fieldList = fields.map(({ key, description }) => `- ${key}: ${description}`).join("\n")
+
+    return [
+        "Read this document and extract the following fields.",
+        "Respond with ONLY a single JSON object containing exactly these keys, and no other text or markdown formatting.",
+        "Use null for any field you can't find.",
+        "",
+        fieldList,
+    ].join("\n")
 }
 
 // Uploads a file via the Files API, then references it by file_id in the message instead of
@@ -49,3 +64,5 @@ export async function askClaudeWithFile(prompt: string, file: File): Promise<str
         .map((block) => block.text)
         .join("")
 }
+
+

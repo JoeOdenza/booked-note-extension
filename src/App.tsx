@@ -4,9 +4,9 @@ import { getPages } from './storage'
 import type { PageEntry } from './types'
 import AuthFormUploader from './components/AuthFormUploader'
 import { askClaude, askClaudeWithFile } from './logic/claude'
-import { pageToPdf, base64ToFile } from './logic/reader'
+import { pageToPdf, base64ToFile, extractPageDataWithClaude } from './logic/reader'
 import { Switch } from './components/ui/switch'
-import { localStore } from './logic/storage'
+import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
 
 function humanize(field: string): string {
   return field
@@ -31,7 +31,7 @@ function App() {
 
   const [isClaude, setIsClaude] = useState(false);
   useEffect(() => {
-    localStore.get('extractionMode').then((val) => setIsClaude(val === 'claude'))
+    localStore.get('extractionMode').then((val) => setIsClaude((val ?? DEFAULT_EXTRACTION_MODE) === 'claude'))
 
   }, [])
 
@@ -89,6 +89,9 @@ function App() {
           }}
         >
           Describe PDF with Claude
+        </button>
+        <button onClick={() => extractPageDataWithClaude().then(console.log)}>
+          Extract Page Data With Claude
         </button>
       </div>
       <AuthFormUploader />

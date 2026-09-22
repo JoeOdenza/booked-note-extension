@@ -3,13 +3,37 @@
 // no runtime schema object needed, since keys only exist at the type level.
 interface AppStorageSchema {
     confirmationNumber: string,
-    hotel_name: string,
-    check_in_date: string,
-    check_out_date: string,
-    to_pay_price: string,
-    payment_currency: "USD" | "CAD",
+    resortName: string,
+    checkInDate: string,
+    checkOutDate: string,
+    odenzaPrice: string,
+    paymentCurrency: string,
     extractionMode: "claude" | "dom"
 }
+
+// The single source of truth for what "extractionMode isn't set yet" means -- App.tsx's
+// switch and index.ts's content script both read this instead of guessing their own
+// fallback, so they can't silently disagree with each other again.
+export const DEFAULT_EXTRACTION_MODE: AppStorageSchema["extractionMode"] = "dom"
+
+// The subset of AppStorageSchema that's actual page data (as opposed to extractionMode,
+// a UI setting) -- this is what DOM-mode reads via CSS selectors and what Claude-mode
+// asks Claude to extract instead. See buildExtractionPrompt in logic/claude.ts.
+export type PageDataSchema = Omit<AppStorageSchema, "extractionMode">
+
+// TS types don't exist at runtime, so there's no way to hand PageDataSchema itself to
+// Claude -- this is the runtime companion that actually describes each field, kept in sync
+// with PageDataSchema via `key: keyof PageDataSchema` (a typo or removed field here is a
+// compile error, a field missing here entirely is not, since arrays can't be checked for
+// completeness against an object type).
+export const PAGE_FIELDS: { key: keyof PageDataSchema; description: string }[] = [
+    { key: "confirmationNumber", description: "Confirmation number" },
+    { key: "resortName", description: "Hotel or resort name" },
+    { key: "checkInDate", description: "Check-in date" },
+    { key: "checkOutDate", description: "Check-out date" },
+    { key: "odenzaPrice", description: "Cost of the resort to be paid, excludes at resort fees" },
+    { key: "paymentCurrency", description: "Payment currency -- either USD or CAD" },
+]
 
 // Storage engine contract, generic over a key->value schema. Swapping the engine later
 // (e.g. to IndexedDB) means writing another createLocalStore-shaped factory and changing

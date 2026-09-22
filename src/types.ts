@@ -1,3 +1,5 @@
+import type { PageDataSchema } from "./logic/storage"
+
 export type PageEntry = {
     capturedAt: number
     [field: string]: unknown
@@ -5,10 +7,10 @@ export type PageEntry = {
 
 export type Pages = Record<string, PageEntry>
 
-// Sent from the content script (reader.ts) to the service worker, which owns writing
+// Sent from the content script (index.ts) to the service worker, which owns writing
 // to chrome.storage.local -- keeps content scripts from touching storage directly.
 export interface PageCapturedMessage {
     type: "PAGE_CAPTURED"
     url: string
-    info: Record<string, unknown>
+    info: PageDataSchema
 }

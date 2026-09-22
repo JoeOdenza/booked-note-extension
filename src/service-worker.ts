@@ -1,6 +1,8 @@
 import { localStore, type PageDataSchema } from "./logic/storage";
 import { extractPageDataWithClaude } from "./logic/reader";
 import type { ContentScriptMessage } from "./types";
+import { savePage } from "./storage";
+import type { PageCapturedMessage } from "./types";
 
 // With no default_popup, clicking the toolbar icon opens the side panel instead
 chrome.sidePanel
@@ -33,3 +35,7 @@ chrome.runtime.onMessage.addListener(
     }
   },
 );
+chrome.runtime.onMessage.addListener((message: PageCapturedMessage) => {
+  if (message.type !== "PAGE_CAPTURED") return;
+  savePage(message.url, message.info);
+});

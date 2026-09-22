@@ -1,6 +1,6 @@
 {
   "resCard": {
-    "trip_name": "Smith Family Hawaii Getaway",
+    "trip_name": "HAWAII NOV 2026",
     "marketing_source": "Certificate Booking",
     "group_type": "CERT (NON VIP) BOOKING",
     "branch_num": "06",
@@ -10,7 +10,7 @@
   },
   "reservations": [
     {
-      "vendor_name": "Grand Wailea Resort",
+      "vendor_name": "RCI Resort",
       "travel_category": "Hotel",
       "confirmation_num": "GW-773421",
       "locator_num": "LOC-98213",

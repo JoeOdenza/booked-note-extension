@@ -7,7 +7,7 @@ export const RES_CARD_SCHEMA: Field[] = [
     { key: "branch_num", label: "Branch No."},
     { key: "locator_num", label: "Locator Num"},
     { key: "trip_region", label: "Trip Region"},
-    { key: "trip_city", label: "Destination"}
+    { key: "trip_city", label: "Destination"},
 ] as const satisfies Field[]
 
 export const RES_CARD_RESERVATION_SCHEMA: Field[] = [

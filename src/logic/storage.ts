@@ -1,14 +1,33 @@
 // Every key this extension stores, and the type of value that lives under it. Add a new
 // key here and every localStore.get/set call site gets autocomplete + type-checking for it --
 // no runtime schema object needed, since keys only exist at the type level.
-interface AppStorageSchema {
+// Fields the DOM/Claude extraction pipeline captures per page -- see PageDataSchema below.
+interface PageDataFields {
     confirmationNumber: string,
     resortName: string,
     checkInDate: string,
     checkOutDate: string,
     odenzaPrice: string,
     paymentCurrency: string,
-    extractionMode: "claude" | "dom"
+    tripLocation: string,
+}
+
+interface AppStorageSchema extends PageDataFields {
+    extractionMode: "claude" | "dom",
+    marketing_source: string,
+    group_type: string,
+    branch_num: string,
+    trip_region: string,
+    trip_city: string,
+    vendor_name: string,
+    travel_category: string,
+    locator_num: string,
+    currency: string,
+    total_cost: string,
+    travel_property: string,
+    start_date: string,
+    end_date: string,
+    additionalTravelers: Record<string, string>[],
 }
 
 // The single source of truth for what "extractionMode isn't set yet" means -- App.tsx's
@@ -16,10 +35,11 @@ interface AppStorageSchema {
 // fallback, so they can't silently disagree with each other again.
 export const DEFAULT_EXTRACTION_MODE: AppStorageSchema["extractionMode"] = "dom"
 
-// The subset of AppStorageSchema that's actual page data (as opposed to extractionMode,
-// a UI setting) -- this is what DOM-mode reads via CSS selectors and what Claude-mode
-// asks Claude to extract instead. See buildExtractionPrompt in logic/claude.ts.
-export type PageDataSchema = Omit<AppStorageSchema, "extractionMode">
+// What DOM-mode reads via CSS selectors and what Claude-mode asks Claude to extract
+// instead. See buildExtractionPrompt in logic/claude.ts. Deliberately excludes the
+// resCard/reservation/traveler fields above -- those aren't captured per-page, they're
+// read straight out of localStore in generate.ts.
+export type PageDataSchema = PageDataFields
 
 // TS types don't exist at runtime, so there's no way to hand PageDataSchema itself to
 // Claude -- this is the runtime companion that actually describes each field, kept in sync

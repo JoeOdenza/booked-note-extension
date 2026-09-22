@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { findMatchingSite } from './site-config'
 import { getPages } from './storage'
-import type { PageEntry } from './types'
+import type { PageEntry, ResCardData } from './types'
 import AuthFormUploader from './components/AuthFormUploader'
 import ResCardPanel from './components/ResCardPanel'
 import { askClaude, askClaudeWithFile } from './logic/claude'
 import { pageToPdf, base64ToFile, extractPageDataWithClaude } from './logic/reader'
 import mockClaudeData from './data/mockClaudeData.json'
+import { generateResCardData } from './logic/generate'
 import { Switch } from './components/ui/switch'
 import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
 
@@ -36,6 +37,11 @@ function App() {
   useEffect(() => {
     localStore.get('extractionMode').then((val) => setIsClaude((val ?? DEFAULT_EXTRACTION_MODE) === 'claude'))
 
+  }, [])
+
+  const [resCardData, setResCardData] = useState<ResCardData | null>(null)
+  useEffect(() => {
+    generateResCardData().then((result) => setResCardData(result.data))
   }, [])
 
   const setIsClaudeWiLocal = (val: boolean) => {
@@ -98,7 +104,7 @@ function App() {
         </button>
       </div>
       <AuthFormUploader />
-      <ResCardPanel data={mockClaudeData}/>
+      {resCardData && <ResCardPanel data={resCardData} />}
     </>
   )
 }

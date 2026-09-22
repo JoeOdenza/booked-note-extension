@@ -44,7 +44,7 @@ type ResCardValues = Record<string, string>
 type ReservationValues = Record<string, string>
 type AdditionalTravelerValues = Record<string, string>
 
-interface ResCardData {
+export interface ResCardData {
   resCard: ResCardValues
   reservations: ReservationValues[]
   additionalTravelers: AdditionalTravelerValues[]

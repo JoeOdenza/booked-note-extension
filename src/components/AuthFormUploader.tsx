@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import mockAuthForm from '../../mock-auth-form.json'
+import mockAuthForm from '../data/mock-auth-form.json'
 
 export default function AuthFormUploader() {
 

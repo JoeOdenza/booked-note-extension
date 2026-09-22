@@ -6,7 +6,7 @@ import AuthFormUploader from './components/AuthFormUploader'
 import ResCardPanel from './components/ResCardPanel'
 import { askClaude, askClaudeWithFile } from './logic/claude'
 import { pageToPdf, base64ToFile } from './logic/reader'
-import mockClaudeData from './mockClaudeData.json'
+import mockClaudeData from './data/mockClaudeData.json'
 import { Switch } from './components/ui/switch'
 import { localStore } from './logic/storage'
 

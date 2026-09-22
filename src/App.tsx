@@ -3,6 +3,12 @@ import { findMatchingSite } from './site-config'
 import { getPages } from './storage'
 import type { PageEntry } from './types'
 import AuthFormUploader from './components/AuthFormUploader'
+import ResCardPanel from './components/ResCardPanel'
+import { askClaude, askClaudeWithFile } from './logic/claude'
+import { pageToPdf, base64ToFile } from './logic/reader'
+import mockClaudeData from './data/mockClaudeData.json'
+import { Switch } from './components/ui/switch'
+import { localStore } from './logic/storage'
 
 function humanize(field: string): string {
   return field
@@ -11,6 +17,7 @@ function humanize(field: string): string {
 }
 
 function App() {
+
   const [latest, setLatest] = useState<(PageEntry & { url: string }) | null>(null)
 
   useEffect(() => {
@@ -25,11 +32,32 @@ function App() {
     })
   }, [])
 
+  const [isClaude, setIsClaude] = useState(false);
+  useEffect(() => {
+    localStore.get('extractionMode').then((val) => setIsClaude(val === 'claude'))
+
+  }, [])
+
+  const setIsClaudeWiLocal = (val: boolean) => {
+    localStore.set('extractionMode', val ? 'claude' : 'dom').then(
+      () => setIsClaude(val)
+    )
+  }
+
   const site = latest ? findMatchingSite(latest.url) : undefined
   const fields = site ? Object.keys(site.extract) : []
 
+
   return (
     <>
+      <div className="flex items-center space-x-2">
+        <Switch id="airplane-mode" checked={!isClaude} onCheckedChange={(isDom) => setIsClaudeWiLocal(!isDom)} />
+        <span>DOM Mode</span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch id="airplane-mode" checked={isClaude} onCheckedChange={(isClaude) => setIsClaudeWiLocal(isClaude)} />
+        <span>Claude Mode</span>
+      </div>
       <div style={{ width: 240, padding: 16 }}>
         <h1 style={{ fontSize: '1.1rem', margin: '0 0 8px' }}>Booked Note</h1>
         {latest ? (
@@ -46,8 +74,28 @@ function App() {
         ) : (
           <p style={{ fontSize: '0.9rem', color: '#666' }}>No captures yet</p>
         )}
+        <button onClick={() => askClaude('give me a haiku').then(console.log)}>
+          Ask Claude
+        </button>
+        <button onClick={() => pageToPdf().then(console.log)}>
+          Print PDF Data
+        </button>
+        <button
+          onClick={async () => {
+            const base64 = await pageToPdf()
+            const file = base64ToFile(base64, 'page.pdf', 'application/pdf')
+            const result = await askClaudeWithFile(
+              'Describe this document and extract its information into JSON.',
+              file,
+            )
+            console.log(result)
+          }}
+        >
+          Describe PDF with Claude
+        </button>
       </div>
       <AuthFormUploader />
+      <ResCardPanel data={mockClaudeData}/>
     </>
   )
 }

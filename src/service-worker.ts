@@ -7,6 +7,8 @@ chrome.sidePanel
     .catch((error) => console.error(error))
 
 chrome.runtime.onMessage.addListener((message: PageCapturedMessage) => {
-    if (message.type !== "PAGE_CAPTURED") return
-    savePage(message.url, message.info)
+    if (message.type !== "PAGE_CAPTURED") return;
+    savePage(message.url, message.info);
+
+    console.log('mista white!');
 })

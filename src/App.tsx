@@ -18,7 +18,6 @@ function humanize(field: string): string {
 
 function App() {
 
-  const mockData = mockClaudeData
   const [latest, setLatest] = useState<(PageEntry & { url: string }) | null>(null)
 
   useEffect(() => {

@@ -17,21 +17,24 @@ const site = findMatchingSite(location.href)
 console.log('[booked-note] matched site config:', site)
 
 if (site) {
-  const extractionMode = await localStore.get('extractionMode') ?? "claude";
-  switch (extractionMode) {
-    case "claude":
-      console.log('claude mode');
-      break;
+  void (async () => {
+    const extractionMode = await localStore.get('extractionMode') ?? "claude";
+    switch (extractionMode) {
+      case "claude":
+        console.log('claude mode');
+        break;
 
-    case "dom":
-      const info = extractInfo(site)
-      const message: PageCapturedMessage = { type: "PAGE_CAPTURED", url: location.href, info }
-      chrome.runtime.sendMessage(message)
-      break;
+      case "dom": {
+        const info = extractInfo(site)
+        const message: PageCapturedMessage = { type: "PAGE_CAPTURED", url: location.href, info }
+        chrome.runtime.sendMessage(message)
+        break;
+      }
 
-    default:
-      const _exhaustCheck: never = extractionMode;
-      throw "Default case never allowed";
-  }
-
+      default: {
+        const _exhaustCheck: never = extractionMode;
+        throw new Error(`Default case never allowed: ${_exhaustCheck}`);
+      }
+    }
+  })();
 }

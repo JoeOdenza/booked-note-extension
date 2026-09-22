@@ -1,4 +1,5 @@
-import { ResCardTabKey } from "@/types"
+import { useState } from 'react'
+import { ResCardPanelProps } from '@/types'
 import { RES_CARD_SCHEMA, RES_CARD_RESERVATION_SCHEMA, ADDITIONAL_TRAVELER_SCHEMA } from "@/schema"
 import {
   Card,
@@ -32,7 +33,14 @@ function InputField({ label, value }: { label: string; value: string }) {
 }
 
 
-export default function ResCardPanel() {
+export default function ResCardPanel({ data }: ResCardPanelProps) {
+    
+    // Index selection for reservations
+    const [resIndex, setResIndex] = useState<number>(0)
+
+    //Index selection for additional travelers
+    const [addTravelerIndex, setAddTravelerIndex] = useState<number>(0)
+
 
     return (
         <Tabs defaultValue="overview" className="w-[400px]">
@@ -54,7 +62,7 @@ export default function ResCardPanel() {
                 <InputField
                     key={field.key}
                     label={field.label}
-                    value="Hello"
+                    value={data.resCard[field.key] ?? "-"}
                 />
             ))}
           </CardContent>
@@ -69,11 +77,19 @@ export default function ResCardPanel() {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
+            <select value={resIndex} onChange={(e) => setResIndex(Number(e.target.value))}>
+                {data.reservations.map((r, i) => (
+                    <option key={i} value={i}>
+                        {r.vendor_name || `Reservation ${i + 1}`}
+                    </option>
+                ))}
+            </select>
             {RES_CARD_RESERVATION_SCHEMA.map((field) => (
                 <InputField
                     key={field.key}
                     label={field.label}
-                    value="Hello"
+                    value={data.reservations[resIndex][field.key] ?? ""}
+
                 />
             ))}
           </CardContent>
@@ -88,11 +104,19 @@ export default function ResCardPanel() {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
+            <select value={addTravelerIndex} onChange={(e) => setAddTravelerIndex(Number(e.target.value))}>
+                {data.additionalTravelers.map((r, i) => (
+                    <option key={i} value={i}>
+                        {`Traveler ${i + 1}`}
+                    </option>
+                ))}
+            </select>
             {ADDITIONAL_TRAVELER_SCHEMA.map((field) => (
                 <InputField
                     key={field.key}
                     label={field.label}
-                    value="Hello"
+                    value={data.additionalTravelers[addTravelerIndex][field.key] ?? ""}
+
                 />
             ))}
           </CardContent>

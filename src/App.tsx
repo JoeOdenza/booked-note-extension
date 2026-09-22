@@ -6,6 +6,7 @@ import AuthFormUploader from './components/AuthFormUploader'
 import ResCardPanel from './components/ResCardPanel'
 import { askClaude, askClaudeWithFile } from './logic/claude'
 import { pageToPdf, base64ToFile } from './logic/reader'
+import mockClaudeData from './mockClaudeData.json'
 
 function humanize(field: string): string {
   return field
@@ -14,6 +15,8 @@ function humanize(field: string): string {
 }
 
 function App() {
+
+  const mockData = mockClaudeData
   const [latest, setLatest] = useState<(PageEntry & { url: string }) | null>(null)
 
   useEffect(() => {
@@ -70,7 +73,7 @@ function App() {
         </button>
       </div>
       <AuthFormUploader /> */}
-      <ResCardPanel />
+      <ResCardPanel data={mockClaudeData}/>
     </>
   )
 }

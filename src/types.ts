@@ -22,5 +22,18 @@ export interface Field {
 
 export type FieldValues = Record<string, string>
 
+type ResCardValues = Record<string, string>
+type ReservationValues = Record<string, string>
+type AdditionalTravelerValues = Record<string, string>
 
-export type ResCardTabKey = "resCard" | "reservations" | "additionalTravler"
+interface ResCardData {
+  resCard: ResCardValues
+  reservations: ReservationValues[]
+  additionalTravelers: AdditionalTravelerValues[]
+}
+
+export interface ResCardPanelProps {
+  data: ResCardData
+}
+
+

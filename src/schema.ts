@@ -30,9 +30,3 @@ export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
     { key: "add_relation", label: "Relationship to Main Guest"},
     { key: "add_citizenship", label: "Citizenship"}
 ] as const satisfies Field[]
-
-export const RES_CARD_SELECTION_SCHEMA = {
-    resCard : RES_CARD_SCHEMA,
-    reservations: RES_CARD_RESERVATION_SCHEMA,
-    additionalTravler: ADDITIONAL_TRAVELER_SCHEMA,
-}

@@ -7,7 +7,8 @@ interface AppStorageSchema {
     check_in_date: string,
     check_out_date: string,
     to_pay_price: string,
-    payment_currency: string,
+    payment_currency: "USD" | "CAD",
+    extractionMode: "claude" | "dom"
 }
 
 // Storage engine contract, generic over a key->value schema. Swapping the engine later

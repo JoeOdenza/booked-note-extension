@@ -7,6 +7,8 @@ import ResCardPanel from './components/ResCardPanel'
 import { askClaude, askClaudeWithFile } from './logic/claude'
 import { pageToPdf, base64ToFile } from './logic/reader'
 import mockClaudeData from './mockClaudeData.json'
+import { Switch } from './components/ui/switch'
+import { localStore } from './logic/storage'
 
 function humanize(field: string): string {
   return field
@@ -31,12 +33,33 @@ function App() {
     })
   }, [])
 
+  const [isClaude, setIsClaude] = useState(false);
+  useEffect(() => {
+    localStore.get('extractionMode').then((val) => setIsClaude(val === 'claude'))
+
+  }, [])
+
+  const setIsClaudeWiLocal = (val: boolean) => {
+    localStore.set('extractionMode', val ? 'claude' : 'dom').then(
+      () => setIsClaude(val)
+    )
+  }
+
   const site = latest ? findMatchingSite(latest.url) : undefined
   const fields = site ? Object.keys(site.extract) : []
 
+
   return (
     <>
-      {/* <div style={{ width: 240, padding: 16 }}>
+      <div className="flex items-center space-x-2">
+        <Switch id="airplane-mode" checked={!isClaude} onCheckedChange={(isDom) => setIsClaudeWiLocal(!isDom)} />
+        <span>DOM Mode</span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch id="airplane-mode" checked={isClaude} onCheckedChange={(isClaude) => setIsClaudeWiLocal(isClaude)} />
+        <span>Claude Mode</span>
+      </div>
+      <div style={{ width: 240, padding: 16 }}>
         <h1 style={{ fontSize: '1.1rem', margin: '0 0 8px' }}>Booked Note</h1>
         {latest ? (
           <div>
@@ -72,7 +95,7 @@ function App() {
           Describe PDF with Claude
         </button>
       </div>
-      <AuthFormUploader /> */}
+      <AuthFormUploader />
       <ResCardPanel data={mockClaudeData}/>
     </>
   )

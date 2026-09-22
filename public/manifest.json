@@ -16,12 +16,25 @@
   "side_panel": {
     "default_path": "sidepanel.html"
   },
-  "permissions": ["scripting", "activeTab", "storage", "sidePanel", "debugger"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage",
+    "sidePanel",
+    "debugger"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://www.mywebrez.com/odenza2/*", "file:///C:/Users/joe/Downloads/view-hold.htm"],
-      "js": ["src/reader.ts"]
+      "matches": [
+        "https://www.mywebrez.com/odenza2/*",
+        "file:///C:/Users/*/Downloads/view-hold.htm"
+      ],
+      "js": [
+        "src/reader.ts"
+      ]
     }
   ]
 }

@@ -3,6 +3,8 @@ import { findMatchingSite } from './site-config'
 import { getPages } from './storage'
 import type { PageEntry } from './types'
 import AuthFormUploader from './components/AuthFormUploader'
+import { askClaude, askClaudeWithFile } from './logic/claude'
+import { pageToPdf, base64ToFile } from './logic/reader'
 
 function humanize(field: string): string {
   return field
@@ -46,6 +48,25 @@ function App() {
         ) : (
           <p style={{ fontSize: '0.9rem', color: '#666' }}>No captures yet</p>
         )}
+        <button onClick={() => askClaude('give me a haiku').then(console.log)}>
+          Ask Claude
+        </button>
+        <button onClick={() => pageToPdf().then(console.log)}>
+          Print PDF Data
+        </button>
+        <button
+          onClick={async () => {
+            const base64 = await pageToPdf()
+            const file = base64ToFile(base64, 'page.pdf', 'application/pdf')
+            const result = await askClaudeWithFile(
+              'Describe this document and extract its information into JSON.',
+              file,
+            )
+            console.log(result)
+          }}
+        >
+          Describe PDF with Claude
+        </button>
       </div>
       <AuthFormUploader />
     </>

@@ -17,9 +17,9 @@ async function run() {
     (await localStore.get("extractionMode")) ?? DEFAULT_EXTRACTION_MODE;
   console.log("extraction mode", extractionMode);
   switch (extractionMode) {
-    case "claude":
-      console.log("claude mode");
-      break;
+    case "claude": {
+      return console.log("claude mode");
+    }
 
     case "dom": {
       const info = extractPageDataFromDom({
@@ -41,13 +41,13 @@ async function run() {
         url: location.href,
         info,
       };
-      chrome.runtime.sendMessage(message);
-      break;
+
+      return chrome.runtime.sendMessage(message);
     }
 
     default: {
       const _exhaustCheck: never = extractionMode;
-      throw "Default case never allowed";
+      throw new Error(`Default case never allowed: ${_exhaustCheck}`);
     }
   }
 }

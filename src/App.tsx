@@ -3,8 +3,10 @@ import { findMatchingSite } from './site-config'
 import { getPages } from './storage'
 import type { PageEntry } from './types'
 import AuthFormUploader from './components/AuthFormUploader'
+import ResCardPanel from './components/ResCardPanel'
 import { askClaude, askClaudeWithFile } from './logic/claude'
 import { pageToPdf, base64ToFile, extractPageDataWithClaude } from './logic/reader'
+import mockClaudeData from './data/mockClaudeData.json'
 import { Switch } from './components/ui/switch'
 import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
 
@@ -15,6 +17,7 @@ function humanize(field: string): string {
 }
 
 function App() {
+
   const [latest, setLatest] = useState<(PageEntry & { url: string }) | null>(null)
 
   useEffect(() => {
@@ -95,6 +98,7 @@ function App() {
         </button>
       </div>
       <AuthFormUploader />
+      <ResCardPanel data={mockClaudeData}/>
     </>
   )
 }

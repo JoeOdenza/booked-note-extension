@@ -14,3 +14,28 @@ export interface PageCapturedMessage {
     url: string
     info: PageDataSchema
 }
+
+export interface Field {
+    key: string
+    label: string
+    type?: "select" | "checkbox"
+    options?: (string | number)[]
+}
+
+export type FieldValues = Record<string, string>
+
+type ResCardValues = Record<string, string>
+type ReservationValues = Record<string, string>
+type AdditionalTravelerValues = Record<string, string>
+
+interface ResCardData {
+  resCard: ResCardValues
+  reservations: ReservationValues[]
+  additionalTravelers: AdditionalTravelerValues[]
+}
+
+export interface ResCardPanelProps {
+  data: ResCardData
+}
+
+

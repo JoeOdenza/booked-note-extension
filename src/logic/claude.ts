@@ -49,3 +49,31 @@ export async function askClaudeWithFile(prompt: string, file: File): Promise<str
         .map((block) => block.text)
         .join("")
 }
+
+// Same idea as askClaudeWithFile, but for multiple images in one message --
+// e.g. the per-page PNGs produced by censoring a PDF, so Claude sees the
+// whole document as a sequence of pages in a single request.
+export async function askClaudeWithImages(prompt: string, images: File[]): Promise<string> {
+    const content = await Promise.all(
+        images.map(async (image) => {
+            const uploaded = await client.files.upload({ file: image })
+            return { type: "image" as const, source: { type: "file" as const, file_id: uploaded.id } }
+        }),
+    )
+
+    const message = await client.messages.create({
+        max_tokens: 1024,
+        messages: [
+            {
+                role: "user",
+                content: [...content, { type: "text" as const, text: prompt }],
+            },
+        ],
+        model: "claude-opus-5",
+    })
+
+    return message.content
+        .filter((block) => block.type === "text")
+        .map((block) => block.text)
+        .join("")
+}

@@ -36,4 +36,32 @@ export interface ResCardPanelProps {
   data: ResCardData
 }
 
+// Mirrors the extraction prompt in AuthFormUploader.tsx field-for-field --
+// keep the two in sync if one changes.
+export interface AuthFormGuestDetail {
+  firstName: string
+  middleName: string | null
+  lastName: string
+  birthdate: string
+  citizenship: string
+  basePrice: string
+  taxAmount: string
+  currencyType: string
+}
+
+export interface AuthFormData {
+  mainGuestName: string | null
+  guestProfileNumber: number | null
+  travelAdvisor: string | null
+  guestDetails: AuthFormGuestDetail[]
+  grandTotal: number | null
+  grandTotalCurrency: string | null
+  finalPayment: number | null
+  finalPaymentCurrency: string | null
+  depositAmount: number | null
+  depositCurrencyType: string | null
+  certificateCode: string
+  hasUsedBankPoints: boolean
+}
+
 

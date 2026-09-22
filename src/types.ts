@@ -23,4 +23,4 @@ export interface Field {
 export type FieldValues = Record<string, string>
 
 
-export type ResCardTabKey = "resCard" | "reservations" | "additionalTravler
+export type ResCardTabKey = "resCard" | "reservations" | "additionalTravler"

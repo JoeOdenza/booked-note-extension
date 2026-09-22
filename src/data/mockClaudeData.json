@@ -1,12 +1,12 @@
 {
   "resCard": {
-    "trip_name": "HAWAII NOV 2026",
+    "trip_name": "FLORIDA NOV 2026",
     "marketing_source": "Certificate Booking",
     "group_type": "CERT (NON VIP) BOOKING",
     "branch_num": "06",
     "locator_num": "LOC-98213",
-    "trip_region": "Pacific",
-    "trip_city": "Maui, HI"
+    "trip_region": "Around the World",
+    "trip_city": "Pompano Beach, FL"
   },
   "reservations": [
     {
@@ -34,11 +34,10 @@
   ],
   "additionalTravelers": [
     {
-      "add_first_name": "Emily",
-      "add_middle_name": "Rose",
-      "add_last_name": "Smith",
+      "add_first_name": "Zainab",
+      "add_middle_name": "",
+      "add_last_name": "Sheikh",
       "add_dob": "1990-04-12",
-      "add_relation": "Spouse",
       "add_citizenship": "United States"
     },
     {
@@ -46,7 +45,6 @@
       "add_middle_name": "",
       "add_last_name": "Smith",
       "add_dob": "2015-08-23",
-      "add_relation": "Child",
       "add_citizenship": "United States"
     }
   ]

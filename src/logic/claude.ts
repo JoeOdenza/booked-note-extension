@@ -5,7 +5,7 @@ import type { PageDataSchema } from "./storage"
 // anyone who inspects/unpacks it -- fine while this stays local/internal-only, but revisit
 // before this extension goes to other people (proxy the call through a small backend instead).
 const client = new Anthropic({
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+    apiKey: import.meta.env.ANTHROPIC_API_KEY,
     dangerouslyAllowBrowser: true,
 })
 

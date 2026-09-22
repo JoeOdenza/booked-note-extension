@@ -120,3 +120,8 @@ function parseCurrency(currencyString: string): string {
         return "CAD"
     } else return ""
 }
+
+function generateAgentMarkup(odenzaPrice: number, clientPrice:number): string {
+
+    return ((odenzaPrice - clientPrice).toFixed(2))
+}

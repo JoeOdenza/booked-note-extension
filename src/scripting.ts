@@ -1,6 +1,6 @@
 // import type { QualifiedFieldKey } from "./schema";
 // import type { StorageShape } from "./types";
-import groupNamesData from "./res_card_group_names.json";
+import groupNamesData from "./data/resCardGroupTypes.json";
 
 // One row of res_card_group_names.json -- a lookup table from cert program code to the
 // Res Card's Marketing Source/Group Code, exported (messily) straight from a spreadsheet, so

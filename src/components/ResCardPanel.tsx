@@ -116,6 +116,11 @@ export default function ResCardPanel({ data }: ResCardPanelProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
+                <InputField
+                  key="agentMarkup"
+                  label="Agent Markup:"
+                  value="$300.00"
+                />
                 <SelectField
                     label="Reservation"
                     value={resIndex}

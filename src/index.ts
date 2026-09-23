@@ -57,7 +57,11 @@ function getExpectedValues(
     agentMarkup = bookingDiff;
   } else {
     const leftOverComission = totalComission + bookingDiff;
-    agentMarkup = Math.max(0, leftOverComission);
+    if (leftOverComission >= 0) {
+      agentMarkup = leftOverComission
+    } else {
+      agentMarkup = -totalComission
+    }
   }
 
   return {

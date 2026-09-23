@@ -53,6 +53,7 @@ export const PAGE_FIELDS: { key: keyof PageDataSchema; description: string }[] =
     { key: "checkOutDate", description: "Check-out date" },
     { key: "odenzaPrice", description: "Cost of the resort to be paid, excludes at resort fees" },
     { key: "paymentCurrency", description: "Payment currency -- either USD or CAD" },
+    { key: "tripLocation", description: "Resort's city/region location" },
 ]
 
 // Storage engine contract, generic over a key->value schema. Swapping the engine later

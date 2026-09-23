@@ -79,6 +79,7 @@ export async function generateResCardData(): Promise<ResCardPanelProps> {
         total_cost: odenzaPrice ?? total_cost ?? mockReservation.total_cost,
         start_date: checkInDate ?? start_date ?? mockReservation.start_date,
         end_date: checkOutDate ?? end_date ?? mockReservation.end_date,
+        commission: mockReservation.commission
       }],
       additionalTravelers: additionalTravelers ?? mockClaudeData.additionalTravelers,
     },
@@ -119,9 +120,4 @@ function parseCurrency(currencyString: string): string {
     } else if (currencyString.includes("CAD")) {
         return "CAD"
     } else return ""
-}
-
-function generateAgentMarkup(odenzaPrice: number, clientPrice:number): string {
-
-    return ((odenzaPrice - clientPrice).toFixed(2))
 }

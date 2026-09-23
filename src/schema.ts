@@ -19,7 +19,8 @@ export const RES_CARD_RESERVATION_SCHEMA: Field[] = [
     { key: "total_cost", label: "Base Cost"},
     { key: "travel_property", label: "Travel Property"},
     { key: "start_date", label: "Start Date"},
-    { key: "end_date", label: "End Date"}
+    { key: "end_date", label: "End Date"},
+    { key: "commission", label: "Commission"}
 ]
 
 export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [

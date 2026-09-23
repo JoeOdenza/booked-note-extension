@@ -39,6 +39,8 @@ async function run() {
           "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-4 > div > div.trip-summary-container.js-trip-summary-container > div.summary-final-item > div.summary-final-item-amount",
         paymentCurrency:
           "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div:nth-child(7)",
+        tripLocation:
+          "body > div.site-main-container.clearfix > div.main-contained-site > div > div.site-container > div > div.find-my-reservation.contained-item > div > div.col-lg-8 > div.column-left > div.trip-summary-container.js-trip-summary-container > div.summary-resort-details-container > p.resort-location"
       });
 
       chrome.runtime.sendMessage({

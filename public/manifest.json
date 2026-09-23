@@ -9,9 +9,6 @@
     "48": "extension.png",
     "128": "extension.png"
   },
-  "background": {
-    "service_worker": "src/service-worker.ts"
-  },
   "action": {},
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -29,8 +26,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.mywebrez.com/odenza2/*",
-        "file:///C:/Users/*/Downloads/view-hold.htm"
+        "https://manager.odenzareg.com/CreateBookingNote.aspx*"
       ],
       "js": [
         "src/index.ts"

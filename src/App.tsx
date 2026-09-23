@@ -6,11 +6,11 @@ import AuthFormUploader from './components/AuthFormUploader'
 import ResCardPanel from './components/ResCardPanel'
 import { askClaude, askClaudeWithFile } from './logic/claude'
 import { pageToPdf, base64ToFile, extractPageDataWithClaude } from './logic/reader'
-import mockClaudeData from './data/mockClaudeData.json'
 import { generateResCardData } from './logic/generate'
 import { Switch } from './components/ui/switch'
 import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
-import { fillBookedNote } from './scripting'
+import { computeBookedNoteFields, fillBookedNote, FillBookedNoteArgs } from './scripting'
+import { Button } from './components/ui/button'
 
 function humanize(field: string): string {
   return field
@@ -45,6 +45,9 @@ function App() {
     generateResCardData().then((result) => setResCardData(result.data))
   }, [])
 
+  const [depositAmount, setDepositAmount] = useState('100')
+  const [inHouseAmount, setInHouseAmount] = useState('400')
+
   const setIsClaudeWiLocal = (val: boolean) => {
     localStore.set('extractionMode', val ? 'claude' : 'dom').then(
       () => setIsClaude(val)
@@ -53,6 +56,34 @@ function App() {
 
   const site = latest ? findMatchingSite(latest.url) : undefined
   const fields = site ? Object.keys(site.extract) : []
+
+
+  const comission = 0;
+  const odenzaCost = Number(resCardData?.reservations[0].total_cost.split('$')[1]);
+
+  const {
+agentMarkup,
+profitAndLoss
+  } = computeBookedNoteFields(Number(depositAmount) + Number(inHouseAmount), odenzaCost, comission);
+
+  const commonData = {
+    paymentCurrency: "USD" as const,
+    depositAmount: Number(depositAmount),
+    inHouseChargeAmount: Number(inHouseAmount),
+  };
+
+  const bookedNoteData: FillBookedNoteArgs = profitAndLoss >= 0
+    ? {
+        kind: "profit",
+        profitAmount: profitAndLoss,
+        ...commonData,
+      }
+    : {
+        kind: "loss",
+        lossAmount: Math.abs(profitAndLoss),
+        fulfillmentType: "RCI",
+        ...commonData,
+      }; 
 
 
   return (
@@ -65,57 +96,36 @@ function App() {
         <Switch id="airplane-mode" checked={isClaude} onCheckedChange={(isClaude) => setIsClaudeWiLocal(isClaude)} />
         <span>Claude Mode</span>
       </div>
-      <div style={{ width: 240, padding: 16 }}>
-        <h1 style={{ fontSize: '1.1rem', margin: '0 0 8px' }}>Booked Note</h1>
-        {latest ? (
-          <div>
-            {fields.map((field) => (
-              <p key={field} style={{ margin: '4px 0' }}>
-                {humanize(field)}: <strong>{String(latest[field] ?? '—')}</strong>
-              </p>
-            ))}
-            <p style={{ margin: '4px 0', fontSize: '0.8rem', color: '#666' }}>
-              {new Date(latest.capturedAt).toLocaleString()}
-            </p>
-          </div>
-        ) : (
-          <p style={{ fontSize: '0.9rem', color: '#666' }}>No captures yet</p>
-        )}
-        <button onClick={() => askClaude('give me a haiku').then(console.log)}>
-          Ask Claude
-        </button>
-        <button onClick={() => pageToPdf().then(console.log)}>
-          Print PDF Data
-        </button>
-        <button onClick={() => fillBookedNote({
-          kind: "loss" ,
-          paymentCurrency: "USD",
-          lossAmount: 300,
-          fulfillmentType: "RCI",
-          depositAmount: 100,
-          inHouseChargeAmount: 279.99
-        })}>
-          Fill booked note
-        </button>
-        <button
-          onClick={async () => {
-            const base64 = await pageToPdf()
-            const file = base64ToFile(base64, 'page.pdf', 'application/pdf')
-            const result = await askClaudeWithFile(
-              'Describe this document and extract its information into JSON.',
-              file,
-            )
-            console.log(result)
-          }}
-        >
-          Describe PDF with Claude
-        </button>
-        <button onClick={() => extractPageDataWithClaude().then(console.log)}>
-          Extract Page Data With Claude
-        </button>
+      <div style={{ width: 240, padding: 10 }}>
+        <h1 style={{ fontSize: '1.1rem', margin: '0 0 0px' }}>Res Tracker</h1>
       </div>
-      <AuthFormUploader />
-      {resCardData && <ResCardPanel data={resCardData} />}
+      {resCardData && <ResCardPanel data={resCardData} agentMarkup={Math.round(agentMarkup * 100) / 100} />}
+
+      <div className="flex flex-col gap-3 my-3">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Deposit</label>
+            <input
+              type="number"
+              placeholder="Enter number"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">In House Charge</label>
+            <input
+              type="number"
+              placeholder="Enter number"
+              value={inHouseAmount}
+              onChange={(e) => setInHouseAmount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
+        <Button onClick={() => fillBookedNote(bookedNoteData)}>Fill Booked Note</Button>
+      </div>
     </>
   )
 }

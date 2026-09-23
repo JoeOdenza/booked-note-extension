@@ -223,9 +223,12 @@ interface FillBookedNoteProfitArgs {
   inHouseChargeAmount: number;
 }
 
-type FillBookedNoteArgs = FillBookedNoteLossArgs | FillBookedNoteProfitArgs;
+export type FillBookedNoteArgs =
+  | FillBookedNoteLossArgs
+  | FillBookedNoteProfitArgs;
 
 export async function fillBookedNote(args: FillBookedNoteArgs) {
+  const paymentDate = "09-23-2026";
   const { paymentCurrency } = args;
   const tab = await getActiveTab();
   const tabId = tab.id!;
@@ -235,7 +238,7 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
       ? -Math.abs(args.lossAmount)
       : Math.abs(args.profitAmount);
 
-  await setInputValue(tabId, "#txtBookingPL", pnl);
+  await setInputValue(tabId, "#txtBookingPL", Math.round(pnl * 100) / 100);
   await setInputValue(
     tabId,
     "#txtInHouseCharges",
@@ -269,7 +272,7 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
     paymentCurrency,
     "text",
   );
-  await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", "06/06/2026");
+  await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", paymentDate);
   await setSelectValue(tabId, "#grdVendor_ctl02_drpNetGross", "Net", "text");
   await setSelectValue(tabId, "#grdVendor_ctl02_drpPayment", "1", "text");
 
@@ -287,19 +290,18 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
   await setDateValue(
     tabId,
     "#grdVendor_ctl02_grdPayment_ctl02_txtDate",
-    "06/06/2026",
+    paymentDate,
   );
 }
 
-export async function computeBookedNoteFieldsFromLocalStore(
-  reservationId: string,
+export function computeBookedNoteFields(
   customerPayment: number,
-  totalCost: number,
+  odenzaCost: number,
   commission: number,
 ) {
   // Raw payment/cost difference before commission -- positive means the customer paid
   // more than the cost, negative means a shortfall.
-  const diff = customerPayment - totalCost;
+  const diff = customerPayment - odenzaCost;
 
   // Commission always factors into profit and loss, whichever way diff goes.
   const profitAndLoss = diff + commission;
@@ -311,7 +313,7 @@ export async function computeBookedNoteFieldsFromLocalStore(
 
   console.log("computing");
   console.log({
-    totalCost,
+    odenzaCost,
     commission,
     customerPayment,
     diff,

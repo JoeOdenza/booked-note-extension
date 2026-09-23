@@ -72,7 +72,7 @@ function SelectField({
 }
 
 
-export default function ResCardPanel({ data }: ResCardPanelProps) {
+export default function ResCardPanel({ data, agentMarkup }: ResCardPanelProps & {agentMarkup : number}) {
     
     // Index selection for reservations
     const [resIndex, setResIndex] = useState<number>(0)
@@ -119,7 +119,7 @@ export default function ResCardPanel({ data }: ResCardPanelProps) {
                 <InputField
                   key="agentMarkup"
                   label="Agent Markup:"
-                  value="$300.00"
+                  value={agentMarkup.toString()}
                 />
                 <SelectField
                     label="Reservation"

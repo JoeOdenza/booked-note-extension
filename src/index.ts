@@ -7,21 +7,24 @@ function extractPageData() {
     CERT: string;
   };
 
-  const certCode = params.CERT?.match(/[A-Za-z]+/)?.[0];
-  const certNum = Number(params.CERT?.match(/[0-9]+/)?.[0]);
+  const certCode = params.CERT?.match(/[A-Za-z]+/)?.[0]!;
+  const certNum = Number(params.CERT?.match(/[0-9]+/)?.[0])!;
 
   const groupCodeRaw = document.querySelector(
     "#pnlCard > table > tbody > tr:nth-child(4) > td:nth-child(2)",
   );
-  const groupCode = groupCodeRaw?.textContent?.trim() ?? null;
+  const groupCode = groupCodeRaw?.textContent?.trim()!;
   const profitAndLossText =
-    document.querySelector("#txtBookingPL")?.textContent;
+    document.querySelector("#txtBookingPL")?.textContent!;
 
   const totalFareElements =
     document.querySelectorAll<HTMLInputElement>('[id*="TotalFare"]');
   const supplierAmounts = Array.from(totalFareElements, (elem) =>
     Number(elem.value),
   );
+
+  const agentMarkupRaw = document.querySelector("#txtAgtMarkUp");
+  const agentMarkup = agentMarkupRaw === null ? null : Number(agentMarkupRaw);
 
   const commAmtElements =
     document.querySelectorAll<HTMLInputElement>('[id*="CommAmt"]');
@@ -34,6 +37,7 @@ function extractPageData() {
     groupCode,
     supplierAmounts,
     commAmounts,
+    agentMarkup,
   };
 }
 
@@ -62,8 +66,25 @@ function getExpectedValues(
 }
 
 function main() {
-  const data = extractPageData();
-  console.log(data);
+  const pageData = extractPageData();
+
+  const { expectedAgentMarkup, expectedGroupCode } = getExpectedValues(
+    pageData.certCode,
+    pageData.supplierAmounts.reduce((sum, n) => sum + n),
+    pageData.commAmounts.reduce((sum, n) => sum + n),
+    0,
+  );
+
+  if (expectedGroupCode !== pageData.groupCode) {
+    // todo
+  }
+
+  if (
+    expectedAgentMarkup !== 0 &&
+    pageData.agentMarkup === expectedAgentMarkup
+  ) {
+    // todo
+  }
 }
 
 main();

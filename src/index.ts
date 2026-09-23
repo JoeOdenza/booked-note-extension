@@ -7,13 +7,15 @@ function extractPageData() {
     CERT: string;
   };
 
-  const certCode = params.CERT?.match(/[A-Za-z]+/)?.[0] ?? "";
-  const certNum = Number(params.CERT?.match(/[0-9]+/)?.[0]) ?? 0;
+  const certCode = params.CERT?.match(/[A-Za-z]+/)?.[0];
+  const certNum = Number(params.CERT?.match(/[0-9]+/)?.[0]);
 
   const groupCodeRaw = document.querySelector(
     "#pnlCard > table > tbody > tr:nth-child(4) > td:nth-child(2)",
   );
   const groupCode = groupCodeRaw?.textContent?.trim() ?? null;
+  const profitAndLossText =
+    document.querySelector("#txtBookingPL")?.textContent;
 
   const totalFareElements =
     document.querySelectorAll<HTMLInputElement>('[id*="TotalFare"]');
@@ -25,7 +27,14 @@ function extractPageData() {
     document.querySelectorAll<HTMLInputElement>('[id*="CommAmt"]');
   const commAmounts = Array.from(commAmtElements, (elem) => Number(elem.value));
 
-  return { certCode, certNum, groupCode, supplierAmounts, commAmounts };
+  return {
+    certCode,
+    certNum,
+    profitAndLossText,
+    groupCode,
+    supplierAmounts,
+    commAmounts,
+  };
 }
 
 function getExpectedValues(

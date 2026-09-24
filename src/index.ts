@@ -1,5 +1,10 @@
 import resCardGroupType from "./data/resCardGroupTypes.json"
 
+const GROUP_CODE_SELECTOR =
+  "#pnlCard > table > tbody > tr:nth-child(4) > td:nth-child(2)";
+const AGENT_MARKUP_SELECTOR = "#txtAgtMarkUp";
+const PROFIT_AND_LOSS_SELECTOR = '#txtBookingPL'
+
 function extractPageData() {
   const params = Object.fromEntries(
     new URL(window.location.href).searchParams,
@@ -12,12 +17,10 @@ function extractPageData() {
   const certCode = params.CERT?.match(/[A-Za-z]+/)?.[0]!;
   const certNum = Number(params.CERT?.match(/[0-9]+/)?.[0])!;
 
-  const groupCodeRaw = document.querySelector(
-    "#pnlCard > table > tbody > tr:nth-child(4) > td:nth-child(2)",
-  );
+  const groupCodeRaw = document.querySelector(GROUP_CODE_SELECTOR);
   const groupCode = groupCodeRaw?.textContent?.trim()!;
   const profitAndLossText =
-    document.querySelector("#txtBookingPL")?.textContent!;
+    document.querySelector<HTMLInputElement>("#txtBookingPL")?.value!;
 
   const totalFareElements =
     document.querySelectorAll<HTMLInputElement>('[id*="TotalFare"]');
@@ -25,8 +28,8 @@ function extractPageData() {
     Number(elem.value),
   );
 
-  const agentMarkupRaw = document.querySelector("#txtAgtMarkUp");
-  const agentMarkup = agentMarkupRaw === null ? null : Number(agentMarkupRaw);
+  const agentMarkupRaw = document.querySelector<HTMLInputElement>(AGENT_MARKUP_SELECTOR);
+  const agentMarkup = agentMarkupRaw === null ? null : Number(agentMarkupRaw.value);
 
   const commAmtElements =
     document.querySelectorAll<HTMLInputElement>('[id*="CommAmt"]');
@@ -51,6 +54,7 @@ function getExpectedValues(
 ) {
   const bookingDiff = totalCustomerPayment - totalSupplierPaid;
   const profitAndLoss = bookingDiff + totalComission;
+  console.log(profitAndLoss)
 
   let agentMarkup;
   if (bookingDiff >= 0) {
@@ -74,34 +78,141 @@ function getExpectedValues(
 function main() {
   const pageData = extractPageData();
 
-  const { expectedAgentMarkup, expectedGroupCode } = getExpectedValues(
+  const { expectedAgentMarkup, expectedGroupCode, expectedProfitAndLoss } = getExpectedValues(
     pageData.certCode,
-    pageData.supplierAmounts.reduce((sum, n) => sum + n),
-    pageData.commAmounts.reduce((sum, n) => sum + n),
-    0,
+    pageData.supplierAmounts.reduce((sum, n) => sum + n, 0),
+    pageData.commAmounts.reduce((sum, n) => sum + n, 0),
+    500,
   );
 
+  console.log(expectedAgentMarkup, expectedGroupCode)
+
+
+  // Group Type Check
   if (expectedGroupCode !== pageData.groupCode) {
-    // todo
+    showBanner("groupCode", `Expected Group Type was ${expectedGroupCode}`)
+    drawRedBox(GROUP_CODE_SELECTOR);
+  }
+
+  // Agent Markup Check
+  if (expectedAgentMarkup !== 0 && pageData.agentMarkup === null) {
+   showBanner("agentMarkupMissing", `Expected Agent Markup is ${expectedAgentMarkup}`)
   }
 
   if (
-    expectedAgentMarkup !== 0 &&
-    pageData.agentMarkup === expectedAgentMarkup
+    pageData.agentMarkup && pageData.agentMarkup !== expectedAgentMarkup
   ) {
-    // todo
+    drawRedBox(AGENT_MARKUP_SELECTOR)
+    showBanner("agentMarkupMismatch", `Expected Agent Markup is ${expectedAgentMarkup}`)
   }
+  
+  // P&L Check
+  if (pageData.profitAndLossText && expectedProfitAndLoss !== Number(pageData.profitAndLossText)) {
+    drawRedBox(PROFIT_AND_LOSS_SELECTOR)
+    showBanner("profitAndLossMisMatch", `Expected P&L: ${expectedProfitAndLoss}`)
+  }
+
+  console.log("This is profit" + pageData.profitAndLossText)
+  console.log("expected", expectedProfitAndLoss)
 }
-
-main();
-
-
 
 let highlighted: HTMLElement[] = []
 
 function clearAllHighlights() {
-  highlighted.forEach((field) => (field.style.outline = ""))
+  highlighted.forEach((field) => {
+    field.style.outline = ""
+    field.style.outlineOffset = ""
+  })
   highlighted = []
+  hideAllBanners()
+}
+
+const BANNER_CONTAINER_ID = "bookednotes-banners"
+
+// Fixed stack at the top of the page that holds one banner per check
+function getBannerContainer(): HTMLElement {
+  let container = document.getElementById(BANNER_CONTAINER_ID)
+
+  if (!container) {
+    container = document.createElement("div")
+    container.id = BANNER_CONTAINER_ID
+    Object.assign(container.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      right: "0",
+      zIndex: "2147483647",
+      display: "flex",
+      flexDirection: "column",
+      gap: "2px",
+    })
+    document.body.appendChild(container)
+  }
+
+  return container
+}
+
+// Each check gets its own banner, keyed so reruns reuse it instead of stacking duplicates.
+// Banners are only shown/hidden via display (an attribute), so this doesn't
+// retrigger the MutationObserver on every rerun
+function showBanner(key: string, message: string) {
+  const container = getBannerContainer()
+  let banner = container.querySelector<HTMLElement>(`[data-banner-key="${key}"]`)
+
+  if (!banner) {
+    banner = document.createElement("div")
+    banner.dataset.bannerKey = key
+    Object.assign(banner.style, {
+      padding: "10px 16px",
+      background: "#c62828",
+      color: "#fff",
+      font: "bold 14px sans-serif",
+      textAlign: "center",
+      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
+    })
+    container.appendChild(banner)
+  }
+
+  if (banner.textContent !== message)
+    banner.textContent = message
+  banner.style.display = "block"
+}
+
+function hideAllBanners() {
+  document
+    .querySelectorAll<HTMLElement>(`#${BANNER_CONTAINER_ID} > [data-banner-key]`)
+    .forEach((banner) => (banner.style.display = "none"))
+}
+
+// Fields whose values feed into the checks in main()
+const WATCHED_INPUTS_SELECTOR = `${AGENT_MARKUP_SELECTOR}, [id*="TotalFare"], [id*="CommAmt"], ${PROFIT_AND_LOSS_SELECTOR}`;
+
+// Debounced so a burst of keystrokes / DOM changes only re-checks once
+let rerunTimer: number | undefined;
+function rerun() {
+  clearTimeout(rerunTimer);
+  rerunTimer = window.setTimeout(() => {
+    clearAllHighlights();
+    main();
+  }, 150);
+}
+
+function watchForChanges() {
+  // User typing in any watched input (delegated, so re-rendered inputs still count)
+  document.addEventListener("input", (e) => {
+    if ((e.target as HTMLElement).matches?.(WATCHED_INPUTS_SELECTOR)) {
+      rerun();
+    }
+  });
+
+  // Group code text changing, or the page swapping out elements.
+  // Attributes are not observed, so our own outline styling won't retrigger this.
+  const observer = new MutationObserver(rerun);
+  observer.observe(document.querySelector("#pnlCard") ?? document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
 }
 
 
@@ -114,26 +225,22 @@ function drawRedBox(selector: string): boolean {
 
   field.style.outline = "3px solid red"
   field.style.outlineOffset = "2px"
+  highlighted.push(field)
   return true
 }
 
-// // Extracts cert code from cert code number
-// function extractCertCode(certCodeAndNumber: string): string {
-//   if (certCodeAndNumber) {
-//     const match = certCodeAndNumber.match(/^[^1-9]+/)
-//     if (match) {
-//       return match[0]
-//     }
-//   }
-//   return ""
-// }
 
-// function getGroupType(certCode: string) : string {
+// Extracts certCode letters and checks for match in resCardGroupType.json
+function lookupGroupCode(certCode: string) : string {
+
+  const match = certCode.match(/^[^1-9]+/)
+  if (match) {
+    const matchedGroupType = resCardGroupType.find((g) => g.Program === match[0])
+    return matchedGroupType?.["Group Code"] ?? ""
+  }
   
-//   const match = resCardGroupType.find((g) => g.Program === certCode)
-//   return match?.["Group Code"] ?? ""
-
-// }
+  return ""
+}
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "HIGHLIGHT_SELECTOR") {
@@ -141,3 +248,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 })
 
+
+
+main();
+watchForChanges();

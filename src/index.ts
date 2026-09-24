@@ -90,24 +90,25 @@ function main() {
 
   // Group Type Check
   if (expectedGroupCode !== pageData.groupCode) {
-    showBanner("groupCode", `Expected Group Type was ${expectedGroupCode}`)
+    showBanner("groupCode", `Expected Group Type: ${expectedGroupCode}`)
     drawRedBox(GROUP_CODE_SELECTOR);
   }
 
   // Agent Markup Check
   if (expectedAgentMarkup !== 0 && pageData.agentMarkup === null) {
-   showBanner("agentMarkupMissing", `Expected Agent Markup is ${expectedAgentMarkup}`)
+   showBanner("agentMarkupMissing", `Expected Agent Markup: ${expectedAgentMarkup}`)
   }
 
-  if (
-    pageData.agentMarkup && pageData.agentMarkup !== expectedAgentMarkup
-  ) {
+  if (pageData.agentMarkup && pageData.agentMarkup !== expectedAgentMarkup) {
     drawRedBox(AGENT_MARKUP_SELECTOR)
-    showBanner("agentMarkupMismatch", `Expected Agent Markup is ${expectedAgentMarkup}`)
+    showBanner("agentMarkupMismatch", `Expected Agent Markup: ${expectedAgentMarkup}`)
   }
   
   // P&L Check
-  if (pageData.profitAndLossText && expectedProfitAndLoss !== Number(pageData.profitAndLossText)) {
+  if (!pageData.profitAndLossText || Number.isNaN(Number(pageData.profitAndLossText))) {
+    drawRedBox(PROFIT_AND_LOSS_SELECTOR)
+    showBanner("profitAndLossNaN", `P&L value is not a valid number`)
+  } else if (expectedProfitAndLoss !== Number(pageData.profitAndLossText)) {
     drawRedBox(PROFIT_AND_LOSS_SELECTOR)
     showBanner("profitAndLossMisMatch", `Expected P&L: ${expectedProfitAndLoss}`)
   }

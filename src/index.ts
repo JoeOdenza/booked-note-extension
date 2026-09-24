@@ -23,26 +23,20 @@ function extractPageData() {
   const profitAndLossText =
     document.querySelector<HTMLInputElement>("#txtBookingPL")?.value!;
 
-  
+  const allCurrencies =
+    document.querySelectorAll<HTMLInputElement>('[id*="CurrVendor"]')
+  const supplierCurrency = Array.from(allCurrencies, (elem) =>
+    elem.value
+  )
+
   const totalFareElements =
     document.querySelectorAll<HTMLInputElement>('[id*="TotalFare"]');
   const supplierAmountsPreConversion = Array.from(totalFareElements, (elem) =>
     Number(elem.value),
   );
-
-  const allCurrencies =
-    document.querySelectorAll<HTMLInputElement>('[id*="CurrVendor"]')
-  console.log("Currency", allCurrencies)
-
-  const supplierCurrency = Array.from(allCurrencies, (elem) =>
-    elem.value
-  )
-  console.log("Currencies", supplierCurrency)
-
   const supplierAmounts = supplierAmountsPreConversion.map((val, i) => {
     return convertCurrency(val, supplierCurrency[i], "USD")
   })
-  console.log("ConvertedCurrency", supplierAmounts)
 
   const agentMarkupRaw = document.querySelector<HTMLInputElement>(AGENT_MARKUP_SELECTOR);
   const agentMarkup = agentMarkupRaw === null ? null : Number(agentMarkupRaw.value);
@@ -66,10 +60,11 @@ function extractPageData() {
   };
 }
 
-function convertCurrency(value: number, currency: string, currencyToConvertTo: string): number {
-  if (currency === currencyToConvertTo || currency === '0') {
+// Converts currency between USD and CAD, returns original value if same From and To
+function convertCurrency(value: number, currencyFrom: string, currencyTo: string): number {
+  if (currencyFrom === currencyTo || currencyFrom === '0') {
     return value
-  } else if (currencyToConvertTo === "USD") {
+  } else if (currencyTo === "USD") {
     return value/USD_TO_CAD_CURRENCY_RATE
   } else {
     return value * USD_TO_CAD_CURRENCY_RATE
@@ -79,27 +74,26 @@ function convertCurrency(value: number, currency: string, currencyToConvertTo: s
 function getExpectedValues(
   certCode: string,
   totalSupplierPaid: number,
-  totalComission: number,
+  totalCommission: number,
   totalCustomerPaymentPreConversion: number,
   totalCustomerPaymentCurrency: string
 ) {
 
   const totalCustomerPayment = convertCurrency(totalCustomerPaymentPreConversion, totalCustomerPaymentCurrency, "USD")
   const bookingDiff = totalCustomerPayment - totalSupplierPaid;
-  const profitAndLoss = convertCurrency(bookingDiff + totalComission, "USD", "CAD")
+  const profitAndLoss = convertCurrency(bookingDiff + totalCommission, "USD", "CAD")
 
   let agentMarkup;
   if (bookingDiff >= 0) {
     agentMarkup = bookingDiff;
   } else {
-    const leftOverComission = totalComission + bookingDiff;
+    const leftOverComission = totalCommission + bookingDiff;
     if (leftOverComission >= 0) {
       agentMarkup = leftOverComission
     } else {
-      agentMarkup = -totalComission
+      agentMarkup = -totalCommission
     }
   }
-
   agentMarkup = convertCurrency(agentMarkup, "USD", "CAD")
 
   return {

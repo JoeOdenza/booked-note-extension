@@ -9,7 +9,9 @@
     "48": "extension.png",
     "128": "extension.png"
   },
-  "action": {},
+  "action": {
+    "default_popup": "popup.html"
+  },
   "side_panel": {
     "default_path": "sidepanel.html"
   },

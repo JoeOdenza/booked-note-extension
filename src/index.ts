@@ -42,8 +42,6 @@ function getElementValue(selector: string): string | null {
   const elem = document.querySelector(selector);
   if (elem === null) return null;
 
-  // Form controls report their current value; a <select>'s textContent would be
-  // every option's label concatenated
   return elem instanceof HTMLInputElement || elem instanceof HTMLSelectElement
     ? elem.value
     : (elem.textContent?.trim() ?? null);
@@ -177,6 +175,9 @@ type Discrepancy =
   | { kind: "agentMarkupMismatch"; expected: number }
   | { kind: "agentMarkupCurrencyMissing" };
 
+type Expected = { expectedProfitAndLoss: number, expectedAgentMarkup: number}
+
+
 // Rounds to the nearest cent so accumulated float error (e.g. from repeated
 // currency conversion) doesn't make an otherwise-matching value fail a `!==` check
 function roundCents(value: number): number {
@@ -204,6 +205,47 @@ function lookupGroupCode(certCode: string): string {
   return matchedGroupType?.["Group Code"] ?? "";
 }
 
+function computeExpected(
+  pageData: PageData, 
+  customerPaymentPreConversion: number, 
+  customerPaymentCurrency: string): Expected {
+    const totalSupplierPaid = pageData.supplierAmountsUsd.reduce(
+    (sum, n) => sum + n,
+    0,
+    );
+    const totalCommission = pageData.commAmountsUsd.reduce(
+      (sum, n) => sum + n,
+      0,
+    );
+    const totalCustomerPayment = convertCurrency(
+      customerPaymentPreConversion,
+      customerPaymentCurrency,
+      "USD",
+    );
+    const bookingDiff = totalCustomerPayment - totalSupplierPaid;
+    const expectedProfitAndLoss = convertCurrency(
+      bookingDiff + totalCommission,
+      "USD",
+      "CAD",
+    );
+
+    let expectedAgentMarkupUsd: number;
+    if (bookingDiff >= 0) {
+      expectedAgentMarkupUsd = bookingDiff;
+    } else {
+      const leftOverCommission = totalCommission + bookingDiff;
+      expectedAgentMarkupUsd =
+        leftOverCommission >= 0 ? leftOverCommission : -totalCommission;
+    }
+    const expectedAgentMarkup = convertCurrency(
+      expectedAgentMarkupUsd,
+      "USD",
+      pageData.agentMarkupCurrency ?? "CAD",
+    );
+
+    return {expectedProfitAndLoss, expectedAgentMarkup}
+  }
+
 function compareToExpected(
   pageData: PageData,
   customerPaymentPreConversion: number,
@@ -211,39 +253,7 @@ function compareToExpected(
 ): Discrepancy[] {
   const discrepancies: Discrepancy[] = [];
 
-  const totalSupplierPaid = pageData.supplierAmountsUsd.reduce(
-    (sum, n) => sum + n,
-    0,
-  );
-  const totalCommission = pageData.commAmountsUsd.reduce(
-    (sum, n) => sum + n,
-    0,
-  );
-  const totalCustomerPayment = convertCurrency(
-    customerPaymentPreConversion,
-    customerPaymentCurrency,
-    "USD",
-  );
-  const bookingDiff = totalCustomerPayment - totalSupplierPaid;
-  const expectedProfitAndLoss = convertCurrency(
-    bookingDiff + totalCommission,
-    "USD",
-    "CAD",
-  );
-
-  let expectedAgentMarkupUsd: number;
-  if (bookingDiff >= 0) {
-    expectedAgentMarkupUsd = bookingDiff;
-  } else {
-    const leftOverCommission = totalCommission + bookingDiff;
-    expectedAgentMarkupUsd =
-      leftOverCommission >= 0 ? leftOverCommission : -totalCommission;
-  }
-  const expectedAgentMarkup = convertCurrency(
-    expectedAgentMarkupUsd,
-    "USD",
-    pageData.agentMarkupCurrency ?? "CAD",
-  );
+  const {expectedProfitAndLoss, expectedAgentMarkup} = computeExpected(pageData, customerPaymentPreConversion, customerPaymentCurrency)
 
   if (pageData.missingMarkupCurrency) {
     discrepancies.push({ kind: "agentMarkupCurrencyMissing" });
@@ -391,6 +401,22 @@ function drawRedBox(target: string | HTMLElement): boolean {
   return true;
 }
 
+function setInputValue(selector: string, value: number) {
+  const input = document.querySelector<HTMLInputElement>(selector);
+  if (!input) return false;
+  input.value = value.toFixed(2);
+  // Setting .value in code fires no events. Dispatch them so the page's own
+  // onchange handlers run, and so our "input" listener calls rerun().
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  return true;
+}
+
+function fillExpectedValues(expected: Expected) {
+  setInputValue(AGENT_MARKUP_SELECTOR, expected.expectedAgentMarkup);
+  setInputValue(PROFIT_AND_LOSS_SELECTOR, expected.expectedProfitAndLoss);
+}
+
 // Renders each discrepancy as a red box and/or banner. Once a currency is
 // unresolved the numeric expectations below are unreliable, so their banners
 // are suppressed -- the fields are still outlined, just without a (possibly
@@ -528,6 +554,36 @@ function watchForChanges() {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "HIGHLIGHT_SELECTOR") {
     sendResponse({ found: drawRedBox(message.selector) });
+  }
+
+  if (message.type === "FILL_EXPECTED_VALUES") {
+    const result = getPageData();
+    if (!result.ok) {
+      sendResponse({
+        ok: false,
+        error: result.errors.map((e) => e.message).join("; "),
+      });
+      return;
+    }
+
+    // Expected values are computed from converted amounts, so they're wrong
+    // while any currency is still unselected
+    if (
+      result.data.missingCurrencyElements.length > 0 ||
+      result.data.missingMarkupCurrency
+    ) {
+      sendResponse({ ok: false, error: "Select all currencies first" });
+      return;
+    }
+
+    fillExpectedValues(
+      computeExpected(
+        result.data,
+        result.data.certificateDeposit + result.data.inHouseCharge,
+        DEFAULT_CUSTOMER_PAYMENT_CURRENCY,
+      ),
+    );
+    sendResponse({ ok: true });
   }
 });
 

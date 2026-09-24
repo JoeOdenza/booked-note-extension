@@ -60,6 +60,12 @@ function extractPageData() {
   };
 }
 
+// Rounds to the nearest cent so accumulated float error (e.g. from repeated
+// currency conversion) doesn't make an otherwise-matching value fail a `!==` check
+function roundCents(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 // Converts currency between USD and CAD, returns original value if same From and To
 function convertCurrency(value: number, currencyFrom: string, currencyTo: string): number {
   if (currencyFrom === currencyTo || currencyFrom === '0') {
@@ -136,7 +142,7 @@ function main() {
     if (missingCurrency.length === 0) {
       showBanner("profitAndLossNaN", `P&L value is not a valid number`)
     }
-  } else if (expectedProfitAndLoss !== Number(pageData.profitAndLossText)) {
+  } else if (roundCents(expectedProfitAndLoss) !== roundCents(Number(pageData.profitAndLossText))) {
     drawRedBox(PROFIT_AND_LOSS_SELECTOR)
     if (missingCurrency.length === 0) {
       showBanner("profitAndLossMisMatch", `Expected P&L: ${expectedProfitAndLoss.toFixed(2)}`)
@@ -150,7 +156,7 @@ function main() {
     }
   }
 
-  if (pageData.agentMarkup && pageData.agentMarkup !== expectedAgentMarkup) {
+  if (pageData.agentMarkup && roundCents(pageData.agentMarkup) !== roundCents(expectedAgentMarkup)) {
     if (missingCurrency.length === 0) {
       drawRedBox(AGENT_MARKUP_SELECTOR)
       showBanner("agentMarkupMismatch", `Expected Agent Markup: ${expectedAgentMarkup.toFixed(2)}`)

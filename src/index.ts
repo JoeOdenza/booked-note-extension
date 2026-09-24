@@ -24,8 +24,8 @@ function extractPageData() {
     document.querySelector<HTMLInputElement>("#txtBookingPL")?.value!;
 
   const allCurrencies =
-    document.querySelectorAll<HTMLInputElement>('[id*="CurrVendor"]')
-  const supplierCurrency = Array.from(allCurrencies, (elem) =>
+    Array.from(document.querySelectorAll<HTMLInputElement>('[id*="CurrVendor"]'))
+  const supplierCurrency = allCurrencies.map( (elem) =>
     elem.value
   )
 
@@ -130,7 +130,7 @@ function main() {
   }
 
   // Currency Check
-  const missingCurrency = Array.from(pageData.allCurrencies).filter(elem => elem.value === '0')
+  const missingCurrency = pageData.allCurrencies.filter(elem => elem.value === '0')
   missingCurrency.forEach(elem => drawRedBox(elem))
   if (missingCurrency.length > 0) {
     showBanner("currencyMissing", `Currency not selected for ${missingCurrency.length} supplier(s)`)

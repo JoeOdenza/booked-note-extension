@@ -3,6 +3,7 @@ import resCardGroupType from "./data/resCardGroupTypes.json";
 const GROUP_CODE_SELECTOR =
   "#pnlCard > table > tbody > tr:nth-child(4) > td:nth-child(2)";
 const AGENT_MARKUP_SELECTOR = "#txtAgtMarkUp";
+const AGENT_MARKUP_CURRENCY_SELECTOR = "#drpCurrMark";
 const PROFIT_AND_LOSS_SELECTOR = "#txtBookingPL";
 const IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR = "#txtInHouseCharges";
 const USD_TO_CAD_CURRENCY_RATE = 1.3;
@@ -25,6 +26,8 @@ type PageData = {
   supplierAmountsUsd: number[];
   commAmountsUsd: number[];
   agentMarkup: number | null;
+  agentMarkupCurrency: string | null;
+  missingMarkupCurrency: boolean;
   inHouseCharge: number;
   certificateDeposit: number;
 };
@@ -39,7 +42,9 @@ function getElementValue(selector: string): string | null {
   const elem = document.querySelector(selector);
   if (elem === null) return null;
 
-  return elem instanceof HTMLInputElement
+  // Form controls report their current value; a <select>'s textContent would be
+  // every option's label concatenated
+  return elem instanceof HTMLInputElement || elem instanceof HTMLSelectElement
     ? elem.value
     : (elem.textContent?.trim() ?? null);
 }
@@ -109,6 +114,9 @@ function getPageData(): PageDataResult {
   const agentMarkupText = getElementValue(AGENT_MARKUP_SELECTOR);
   const agentMarkup = agentMarkupText === null ? null : Number(agentMarkupText);
 
+  const agentMarkupCurrency = getElementValue(AGENT_MARKUP_CURRENCY_SELECTOR);
+  const missingMarkupCurrency = agentMarkupCurrency === "0";
+
   const inHouseChargeAndCertDeposit = getElementValue(
     IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR,
   );
@@ -147,6 +155,8 @@ function getPageData(): PageDataResult {
       supplierAmountsUsd,
       commAmountsUsd,
       agentMarkup,
+      agentMarkupCurrency,
+      missingMarkupCurrency,
       inHouseCharge,
       certificateDeposit,
     },
@@ -164,7 +174,8 @@ type Discrepancy =
   | { kind: "profitAndLossInvalid" }
   | { kind: "profitAndLossMismatch"; expected: number }
   | { kind: "agentMarkupMissing"; expected: number }
-  | { kind: "agentMarkupMismatch"; expected: number };
+  | { kind: "agentMarkupMismatch"; expected: number }
+  | { kind: "agentMarkupCurrencyMissing" };
 
 // Rounds to the nearest cent so accumulated float error (e.g. from repeated
 // currency conversion) doesn't make an otherwise-matching value fail a `!==` check
@@ -231,8 +242,12 @@ function compareToExpected(
   const expectedAgentMarkup = convertCurrency(
     expectedAgentMarkupUsd,
     "USD",
-    "CAD",
+    pageData.agentMarkupCurrency ?? "CAD",
   );
+
+  if (pageData.missingMarkupCurrency) {
+    discrepancies.push({ kind: "agentMarkupCurrencyMissing" });
+  }
 
   const expectedGroupCode = lookupGroupCode(pageData.certCode);
 
@@ -376,13 +391,16 @@ function drawRedBox(target: string | HTMLElement): boolean {
   return true;
 }
 
-// Renders each discrepancy as a red box and/or banner. Once currency is
+// Renders each discrepancy as a red box and/or banner. Once a currency is
 // unresolved the numeric expectations below are unreliable, so their banners
 // are suppressed -- the fields are still outlined, just without a (possibly
 // misleading) "expected X" claim.
 function reportDiscrepancies(discrepancies: Discrepancy[]) {
   const hasMissingCurrency = discrepancies.some(
     (d) => d.kind === "currencyMissing",
+  );
+  const hasMissingMarkupCurrency = discrepancies.some(
+    (d) => d.kind === "agentMarkupCurrencyMissing",
   );
 
   for (const discrepancy of discrepancies) {
@@ -418,7 +436,7 @@ function reportDiscrepancies(discrepancies: Discrepancy[]) {
         break;
 
       case "agentMarkupMissing":
-        if (!hasMissingCurrency) {
+        if (!hasMissingCurrency && !hasMissingMarkupCurrency) {
           showBanner(
             "agentMarkupMissing",
             `Expected Agent Markup: ${discrepancy.expected.toFixed(2)}`,
@@ -428,12 +446,20 @@ function reportDiscrepancies(discrepancies: Discrepancy[]) {
 
       case "agentMarkupMismatch":
         drawRedBox(AGENT_MARKUP_SELECTOR);
-        if (!hasMissingCurrency) {
+        if (!hasMissingCurrency && !hasMissingMarkupCurrency) {
           showBanner(
             "agentMarkupMismatch",
             `Expected Agent Markup: ${discrepancy.expected.toFixed(2)}`,
           );
         }
+        break;
+
+      case "agentMarkupCurrencyMissing":
+        drawRedBox(AGENT_MARKUP_CURRENCY_SELECTOR);
+        showBanner(
+          "agentMarkupCurrencyMissing",
+          `Currency not selected for Agent Markup`,
+        );
         break;
 
       default:
@@ -469,7 +495,7 @@ function main() {
 }
 
 // Fields whose values feed into the checks in main()
-const WATCHED_INPUTS_SELECTOR = `${AGENT_MARKUP_SELECTOR}, [id*="TotalFare"], [id*="CommAmt"], ${PROFIT_AND_LOSS_SELECTOR}, [id*="CurrVendor"], ${IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR}`;
+const WATCHED_INPUTS_SELECTOR = `${AGENT_MARKUP_SELECTOR}, [id*="TotalFare"], [id*="CommAmt"], ${PROFIT_AND_LOSS_SELECTOR}, [id*="CurrVendor"], ${IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR}, ${AGENT_MARKUP_CURRENCY_SELECTOR}`;
 
 // Debounced so a burst of keystrokes / DOM changes only re-checks once
 let rerunTimer: number | undefined;

@@ -4,6 +4,7 @@ const GROUP_CODE_SELECTOR =
   "#pnlCard > table > tbody > tr:nth-child(4) > td:nth-child(2)";
 const AGENT_MARKUP_SELECTOR = "#txtAgtMarkUp";
 const PROFIT_AND_LOSS_SELECTOR = "#txtBookingPL";
+const IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR = "#txtInHouseCharges";
 const USD_TO_CAD_CURRENCY_RATE = 1.3;
 const DEFAULT_CUSTOMER_PAYMENT = 500;
 const DEFAULT_CUSTOMER_PAYMENT_CURRENCY = "USD";
@@ -24,6 +25,8 @@ type PageData = {
   supplierAmountsUsd: number[];
   commAmountsUsd: number[];
   agentMarkup: number | null;
+  inHouseCharge: number;
+  certificateDeposit: number;
 };
 
 type ExtractionError = { field: string; message: string };
@@ -106,6 +109,31 @@ function getPageData(): PageDataResult {
   const agentMarkupText = getElementValue(AGENT_MARKUP_SELECTOR);
   const agentMarkup = agentMarkupText === null ? null : Number(agentMarkupText);
 
+  const inHouseChargeAndCertDeposit = getElementValue(
+    IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR,
+  );
+  if (inHouseChargeAndCertDeposit === null) {
+    errors.push({
+      field: "inHouseChargeAndCertDeposit",
+      message: `No element matching "${IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR}"`,
+    });
+  }
+
+  const [inHouseCharge, certificateDeposit] = inHouseChargeAndCertDeposit!
+    ?.split(",")
+    .map((val_with_curr) => {
+      if (val_with_curr.includes("USD")) {
+        console.log(val_with_curr.split("USD")[0].trim());
+        return Number(val_with_curr.split("USD")[0].trim());
+      }
+
+      return convertCurrency(
+        Number(val_with_curr.split("CAD")[0].trim()),
+        "CAD",
+        "USD",
+      );
+    });
+
   if (errors.length > 0) return { ok: false, errors };
 
   return {
@@ -119,6 +147,8 @@ function getPageData(): PageDataResult {
       supplierAmountsUsd,
       commAmountsUsd,
       agentMarkup,
+      inHouseCharge,
+      certificateDeposit,
     },
   };
 }
@@ -420,6 +450,7 @@ function reportDiscrepancies(discrepancies: Discrepancy[]) {
 
 function main() {
   const result = getPageData();
+  console.log(result);
 
   if (!result.ok) {
     showBanner(
@@ -431,14 +462,14 @@ function main() {
 
   const discrepancies = compareToExpected(
     result.data,
-    DEFAULT_CUSTOMER_PAYMENT,
+    result.data.certificateDeposit + result.data.inHouseCharge,
     DEFAULT_CUSTOMER_PAYMENT_CURRENCY,
   );
   reportDiscrepancies(discrepancies);
 }
 
 // Fields whose values feed into the checks in main()
-const WATCHED_INPUTS_SELECTOR = `${AGENT_MARKUP_SELECTOR}, [id*="TotalFare"], [id*="CommAmt"], ${PROFIT_AND_LOSS_SELECTOR}, [id*="CurrVendor"]`;
+const WATCHED_INPUTS_SELECTOR = `${AGENT_MARKUP_SELECTOR}, [id*="TotalFare"], [id*="CommAmt"], ${PROFIT_AND_LOSS_SELECTOR}, [id*="CurrVendor"], ${IN_HOUSE_AND_CERT_DEPOSIT_SELECTOR}`;
 
 // Debounced so a burst of keystrokes / DOM changes only re-checks once
 let rerunTimer: number | undefined;

@@ -4,6 +4,7 @@ const GROUP_CODE_SELECTOR =
   "#pnlCard > table > tbody > tr:nth-child(4) > td:nth-child(2)";
 const AGENT_MARKUP_SELECTOR = "#txtAgtMarkUp";
 const PROFIT_AND_LOSS_SELECTOR = '#txtBookingPL'
+const USD_TO_CAD_CURRENCY_RATE = 1.3
 
 function extractPageData() {
   const params = Object.fromEntries(
@@ -22,18 +23,36 @@ function extractPageData() {
   const profitAndLossText =
     document.querySelector<HTMLInputElement>("#txtBookingPL")?.value!;
 
+  
   const totalFareElements =
     document.querySelectorAll<HTMLInputElement>('[id*="TotalFare"]');
-  const supplierAmounts = Array.from(totalFareElements, (elem) =>
+  const supplierAmountsPreConversion = Array.from(totalFareElements, (elem) =>
     Number(elem.value),
   );
+
+  const allCurrencies =
+    document.querySelectorAll<HTMLInputElement>('[id*="CurrVendor"]')
+  console.log("Currency", allCurrencies)
+
+  const supplierCurrency = Array.from(allCurrencies, (elem) =>
+    elem.value
+  )
+  console.log("Currencies", supplierCurrency)
+
+  const supplierAmounts = supplierAmountsPreConversion.map((val, i) => {
+    return convertCurrency(val, supplierCurrency[i], "USD")
+  })
+  console.log("ConvertedCurrency", supplierAmounts)
 
   const agentMarkupRaw = document.querySelector<HTMLInputElement>(AGENT_MARKUP_SELECTOR);
   const agentMarkup = agentMarkupRaw === null ? null : Number(agentMarkupRaw.value);
 
   const commAmtElements =
     document.querySelectorAll<HTMLInputElement>('[id*="CommAmt"]');
-  const commAmounts = Array.from(commAmtElements, (elem) => Number(elem.value));
+  const commAmountsPreConversion = Array.from(commAmtElements, (elem) => Number(elem.value));
+  const commAmounts = commAmountsPreConversion.map((val, i) => {
+    return convertCurrency(val, supplierCurrency[i], "USD")
+  })
 
   return {
     certCode,
@@ -43,18 +62,31 @@ function extractPageData() {
     supplierAmounts,
     commAmounts,
     agentMarkup,
+    allCurrencies
   };
+}
+
+function convertCurrency(value: number, currency: string, currencyToConvertTo: string): number {
+  if (currency === currencyToConvertTo || currency === '0') {
+    return value
+  } else if (currencyToConvertTo === "USD") {
+    return value/USD_TO_CAD_CURRENCY_RATE
+  } else {
+    return value * USD_TO_CAD_CURRENCY_RATE
+  }
 }
 
 function getExpectedValues(
   certCode: string,
   totalSupplierPaid: number,
   totalComission: number,
-  totalCustomerPayment: number,
+  totalCustomerPaymentPreConversion: number,
+  totalCustomerPaymentCurrency: string
 ) {
+
+  const totalCustomerPayment = convertCurrency(totalCustomerPaymentPreConversion, totalCustomerPaymentCurrency, "USD")
   const bookingDiff = totalCustomerPayment - totalSupplierPaid;
-  const profitAndLoss = bookingDiff + totalComission;
-  console.log(profitAndLoss)
+  const profitAndLoss = convertCurrency(bookingDiff + totalComission, "USD", "CAD")
 
   let agentMarkup;
   if (bookingDiff >= 0) {
@@ -67,6 +99,8 @@ function getExpectedValues(
       agentMarkup = -totalComission
     }
   }
+
+  agentMarkup = convertCurrency(agentMarkup, "USD", "CAD")
 
   return {
     expectedProfitAndLoss: profitAndLoss,
@@ -83,6 +117,7 @@ function main() {
     pageData.supplierAmounts.reduce((sum, n) => sum + n, 0),
     pageData.commAmounts.reduce((sum, n) => sum + n, 0),
     500,
+    "USD",
   );
 
   console.log(expectedAgentMarkup, expectedGroupCode)
@@ -94,26 +129,41 @@ function main() {
     drawRedBox(GROUP_CODE_SELECTOR);
   }
 
-  // Agent Markup Check
-  if (expectedAgentMarkup !== 0 && pageData.agentMarkup === null) {
-   showBanner("agentMarkupMissing", `Expected Agent Markup: ${expectedAgentMarkup}`)
-  }
-
-  if (pageData.agentMarkup && pageData.agentMarkup !== expectedAgentMarkup) {
-    drawRedBox(AGENT_MARKUP_SELECTOR)
-    showBanner("agentMarkupMismatch", `Expected Agent Markup: ${expectedAgentMarkup}`)
+  // Currency Check
+  const missingCurrency = Array.from(pageData.allCurrencies).filter(elem => elem.value === '0')
+  missingCurrency.forEach(elem => drawRedBox(elem))
+  if (missingCurrency.length > 0) {
+    showBanner("currencyMissing", `Currency not selected for ${missingCurrency.length} supplier(s)`)
   }
   
   // P&L Check
   if (!pageData.profitAndLossText || Number.isNaN(Number(pageData.profitAndLossText))) {
     drawRedBox(PROFIT_AND_LOSS_SELECTOR)
-    showBanner("profitAndLossNaN", `P&L value is not a valid number`)
+    if (missingCurrency.length === 0) {
+      showBanner("profitAndLossNaN", `P&L value is not a valid number`)
+    }
   } else if (expectedProfitAndLoss !== Number(pageData.profitAndLossText)) {
     drawRedBox(PROFIT_AND_LOSS_SELECTOR)
-    showBanner("profitAndLossMisMatch", `Expected P&L: ${expectedProfitAndLoss}`)
+    if (missingCurrency.length === 0) {
+      showBanner("profitAndLossMisMatch", `Expected P&L: ${expectedProfitAndLoss.toFixed(2)}`)
+    }
   }
 
-  console.log("This is profit" + pageData.profitAndLossText)
+  // Agent Markup Check
+  if (expectedAgentMarkup !== 0 && pageData.agentMarkup === null) {
+    if (missingCurrency.length === 0) {
+      showBanner("agentMarkupMissing", `Expected Agent Markup: ${expectedAgentMarkup.toFixed(2)}`)
+    }
+  }
+
+  if (pageData.agentMarkup && pageData.agentMarkup !== expectedAgentMarkup) {
+    if (missingCurrency.length === 0) {
+      drawRedBox(AGENT_MARKUP_SELECTOR)
+      showBanner("agentMarkupMismatch", `Expected Agent Markup: ${expectedAgentMarkup.toFixed(2)}`)
+    }
+  }
+
+  console.log("This is profit " + pageData.profitAndLossText)
   console.log("expected", expectedProfitAndLoss)
 }
 
@@ -186,7 +236,7 @@ function hideAllBanners() {
 }
 
 // Fields whose values feed into the checks in main()
-const WATCHED_INPUTS_SELECTOR = `${AGENT_MARKUP_SELECTOR}, [id*="TotalFare"], [id*="CommAmt"], ${PROFIT_AND_LOSS_SELECTOR}`;
+const WATCHED_INPUTS_SELECTOR = `${AGENT_MARKUP_SELECTOR}, [id*="TotalFare"], [id*="CommAmt"], ${PROFIT_AND_LOSS_SELECTOR}, [id*="CurrVendor"]`;
 
 // Debounced so a burst of keystrokes / DOM changes only re-checks once
 let rerunTimer: number | undefined;
@@ -216,10 +266,12 @@ function watchForChanges() {
   });
 }
 
-
-// Styling of red box for specified selector
-function drawRedBox(selector: string): boolean {
-  const field = document.querySelector<HTMLElement>(selector)
+// Styling of red box for a selector or an element
+function drawRedBox(target: string | HTMLElement): boolean {
+  const field =
+    typeof target === "string"
+      ? document.querySelector<HTMLElement>(target)
+      : target
 
   if (!field)
     return false
@@ -230,17 +282,11 @@ function drawRedBox(selector: string): boolean {
   return true
 }
 
-
 // Extracts certCode letters and checks for match in resCardGroupType.json
 function lookupGroupCode(certCode: string) : string {
 
-  const match = certCode.match(/^[^1-9]+/)
-  if (match) {
-    const matchedGroupType = resCardGroupType.find((g) => g.Program === match[0])
-    return matchedGroupType?.["Group Code"] ?? ""
-  }
-  
-  return ""
+  const matchedGroupType = resCardGroupType.find((g) => g.Program === certCode)
+  return matchedGroupType?.["Group Code"] ?? ""
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -248,8 +294,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({ found: drawRedBox(message.selector) })
   }
 })
-
-
 
 main();
 watchForChanges();

@@ -125,20 +125,30 @@ function getPageData(): PageDataResult {
     });
   }
 
-  const [inHouseCharge, certificateDeposit] = inHouseChargeAndCertDeposit!
+  const customerPayment = inHouseChargeAndCertDeposit!
     ?.split(",")
-    .map((val_with_curr) => {
-      if (val_with_curr.includes("USD")) {
-        console.log(val_with_curr.split("USD")[0].trim());
-        return Number(val_with_curr.split("USD")[0].trim());
-      }
 
-      return convertCurrency(
-        Number(val_with_curr.split("CAD")[0].trim()),
-        "CAD",
-        "USD",
-      );
-    });
+  // Helper to extract and convert the amount safely
+  const parseAmountToUSD = (paymentArray: string[], keyword: string) => {
+    const line = paymentArray.find(str => str.includes(keyword));
+    if (!line || !line.includes('$')) return 0;
+
+    const amountPart = line.split('$')[1];
+    
+    if (amountPart.includes('USD')) {
+      return Number(amountPart.split('USD')[0]);
+    } 
+    
+    if (amountPart.includes('CAD')) {
+      const cadAmount = Number(amountPart.split('CAD')[0]);
+      return convertCurrency(cadAmount, 'CAD', 'USD');
+    }
+
+    return Number(amountPart);
+  };
+
+  const inHouseCharge = parseAmountToUSD(customerPayment, 'In-House');
+  const certificateDeposit = parseAmountToUSD(customerPayment, 'Deposit');
 
   if (errors.length > 0) return { ok: false, errors };
 

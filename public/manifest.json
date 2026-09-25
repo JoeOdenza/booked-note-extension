@@ -12,14 +12,10 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  },
   "permissions": [
     "scripting",
     "activeTab",
     "storage",
-    "sidePanel",
     "debugger"
   ],
   "host_permissions": [

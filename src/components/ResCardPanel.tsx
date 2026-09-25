@@ -15,6 +15,7 @@ import {
   TabsTrigger,
 } from "./ui/tabs"
 import { Button } from "./ui/button"
+import { downloadAsJson } from "@/logic/export"
 
 function InputField({ label, value }: { label: string; value: string }) {
 
@@ -82,6 +83,16 @@ export default function ResCardPanel({ data, agentMarkup }: ResCardPanelProps & 
 
 
     return (
+      <div className="flex w-[440px] flex-col gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-end"
+          onClick={() => downloadAsJson(data, { agentMarkup })}
+        >
+          Export JSON
+        </Button>
         <Tabs defaultValue="resCard" className="w-[440px]">
           <TabsList className="w-full">
             <TabsTrigger value="resCard">Res Card</TabsTrigger>
@@ -148,22 +159,27 @@ export default function ResCardPanel({ data, agentMarkup }: ResCardPanelProps & 
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
-                <SelectField
-                    label="Traveler"
-                    value={addTravelerIndex}
-                    onChange={setAddTravelerIndex}
-                    options={data.additionalTravelers.map((_, i) => `Traveler ${i + 1}`)}
-                />
-                {ADDITIONAL_TRAVELER_SCHEMA.map((field) => (
-                    <InputField
-                        key={field.key}
-                        label={field.label}
-                        value={data.additionalTravelers[addTravelerIndex][field.key] ?? ""}
-                    />
-                ))}
+              {data.additionalTravelers?.length > 0 ? (
+                <>
+                  <SelectField
+                      label="Traveler"
+                      value={addTravelerIndex}
+                      onChange={setAddTravelerIndex}
+                      options={data.additionalTravelers.map((_, i) => `Traveler ${i + 1}`)}
+                  />
+                  {ADDITIONAL_TRAVELER_SCHEMA.map((field) => (
+                      <InputField
+                          key={field.key}
+                          label={field.label}
+                          value={data.additionalTravelers[addTravelerIndex][field.key] ?? ""}
+                      />
+                  ))}
+                </>
+              ) : <p>No additional travellers for this trip</p>}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+      </div>
     )
 }

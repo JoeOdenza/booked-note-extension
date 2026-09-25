@@ -28,6 +28,7 @@ export const ADDITIONAL_TRAVELER_SCHEMA: Field[] = [
     { key: "add_middle_name", label: "Middle Name"},
     { key: "add_last_name", label: "Last Name"},
     { key: "add_dob", label: "Date of Birth"},
+    { key: "gender", label: "Gender"},
     { key: "add_relation", label: "Relationship to Main Guest"},
     { key: "add_citizenship", label: "Citizenship"}
 ] as const satisfies Field[]

@@ -1,6 +1,7 @@
 // import type { QualifiedFieldKey } from "./schema";
 // import type { StorageShape } from "./types";
 import groupNamesData from "./data/resCardGroupTypes.json";
+import type { Expected } from "./types"
 
 // One row of res_card_group_names.json -- a lookup table from cert program code to the
 // Res Card's Marketing Source/Group Code, exported (messily) straight from a spreadsheet, so
@@ -14,6 +15,7 @@ interface GroupNameEntry {
 }
 
 const GROUP_NAME_ENTRIES = groupNamesData as GroupNameEntry[];
+const USD_TO_CAD_CURRENCY_RATE = 1.3;
 
 // Cert codes mix in numbers (e.g. batch/version digits) that aren't part of the program
 // identifier itself, so only the letters are meaningful for matching against Program.
@@ -294,35 +296,35 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
   );
 }
 
-export function computeBookedNoteFields(
-  customerPayment: number,
-  odenzaCost: number,
-  commission: number,
-) {
-  // Raw payment/cost difference before commission -- positive means the customer paid
-  // more than the cost, negative means a shortfall.
-  const diff = customerPayment - odenzaCost;
+// export function computeBookedNoteFields(
+//   customerPayment: number,
+//   odenzaCost: number,
+//   commission: number,
+// ) {
+//   // Raw payment/cost difference before commission -- positive means the customer paid
+//   // more than the cost, negative means a shortfall.
+//   const diff = customerPayment - odenzaCost;
 
-  // Commission always factors into profit and loss, whichever way diff goes.
-  const profitAndLoss = diff + commission;
+//   // Commission always factors into profit and loss, whichever way diff goes.
+//   const profitAndLoss = diff + commission;
 
-  // On a shortfall, the markup is however much of that shortfall the commission can
-  // cover (negative): fully covered -> the shortfall itself, otherwise capped at
-  // -commission since that's all there is to cover it with.
-  const agentMarkup = diff >= 0 ? diff : -Math.min(Math.abs(diff), commission);
+//   // On a shortfall, the markup is however much of that shortfall the commission can
+//   // cover (negative): fully covered -> the shortfall itself, otherwise capped at
+//   // -commission since that's all there is to cover it with.
+//   const agentMarkup = diff >= 0 ? diff : -Math.min(Math.abs(diff), commission);
 
-  console.log("computing");
-  console.log({
-    odenzaCost,
-    commission,
-    customerPayment,
-    diff,
-    profitAndLoss,
-    agentMarkup,
-  });
+//   console.log("computing");
+//   console.log({
+//     odenzaCost,
+//     commission,
+//     customerPayment,
+//     diff,
+//     profitAndLoss,
+//     agentMarkup,
+//   });
 
-  return { profitAndLoss, agentMarkup };
-}
+//   return { profitAndLoss, agentMarkup };
+// }
 
 // function to match res card group names with certificate letters, stored back into chrome storage for res card detection
 // export async function matchGroupTypeAndMarketingSource(
@@ -347,5 +349,68 @@ export function computeBookedNoteFields(
 //   await chrome.storage.local.set({ resCardFieldValues });
 // }
 
-// function that matches branch number to branch_no json, stores into chrome storage for res card dection
-export async function matchBranchNo(bank_points_used: string, region: string) {}
+
+// From booked-note-chcker
+export function computeExpected(
+  supplierAmountsUsd: number[], 
+  commAmountsUsd: number[], 
+  agentMarkupCurrency: string, 
+  customerPaymentPreConversion: number, 
+  customerPaymentCurrency: string): Expected {
+    const totalSupplierPaid = supplierAmountsUsd.reduce(
+    (sum, n) => sum + n,
+    0,
+    );
+    const totalCommission = commAmountsUsd.reduce(
+      (sum, n) => sum + n,
+      0,
+    );
+    const totalCustomerPayment = convertCurrency(
+      customerPaymentPreConversion,
+      customerPaymentCurrency,
+      "USD",
+    );
+    const bookingDiff = totalCustomerPayment - totalSupplierPaid;
+    const expectedProfitAndLoss = convertCurrency(
+      bookingDiff + totalCommission,
+      "USD",
+      "CAD",
+    );
+
+    let expectedAgentMarkupUsd: number;
+    if (bookingDiff >= 0) {
+      expectedAgentMarkupUsd = bookingDiff;
+    } else {
+      const leftOverCommission = totalCommission + bookingDiff;
+      expectedAgentMarkupUsd =
+        leftOverCommission >= 0 ? leftOverCommission : -totalCommission;
+    }
+    const expectedAgentMarkup = convertCurrency(
+      expectedAgentMarkupUsd,
+      "USD",
+      agentMarkupCurrency ?? "CAD",
+    );
+
+    return {expectedProfitAndLoss, expectedAgentMarkup}
+  }
+
+  // Converts currency between USD and CAD, returns original value if same From and To
+export function convertCurrency(
+  value: number,
+  currencyFrom: string,
+  currencyTo: string,
+): number {
+  if (currencyFrom === currencyTo || currencyFrom === "0") {
+    return value;
+  } else if (currencyTo === "USD") {
+    return value / USD_TO_CAD_CURRENCY_RATE;
+  } else {
+    return value * USD_TO_CAD_CURRENCY_RATE;
+  }
+}
+
+// Rounds to the nearest cent so accumulated float error (e.g. from repeated
+// currency conversion) doesn't make an otherwise-matching value fail a `!==` check
+function roundCents(value: number): number {
+  return Math.round(value * 100) / 100;
+}

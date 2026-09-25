@@ -9,7 +9,7 @@ import { pageToPdf, base64ToFile, extractPageDataWithClaude } from './logic/read
 import { generateResCardData } from './logic/generate'
 import { Switch } from './components/ui/switch'
 import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
-import { computeBookedNoteFields, fillBookedNote, FillBookedNoteArgs } from './scripting'
+import { convertCurrency, computeExpected, fillBookedNote, FillBookedNoteArgs } from './scripting'
 import { Button } from './components/ui/button'
 
 const CERT_CODE_PATTERN = /^[A-Z]+\d*$/
@@ -74,6 +74,8 @@ function App() {
 
   const [depositAmount, setDepositAmount] = useState('100')
   const [inHouseAmount, setInHouseAmount] = useState('400')
+  const [depositCurrency, setDepositCurrency] = useState('USD')
+  const [inHouseCurrency, setInHouseCurrency] = useState('USD')
 
   const setIsClaudeWiLocal = (val: boolean) => {
     localStore.set('extractionMode', val ? 'claude' : 'dom').then(
@@ -98,10 +100,24 @@ function App() {
   const comission = parseMoney(resCardData?.reservations[0]?.commission);
   const odenzaCost = parseMoney(resCardData?.reservations[0]?.total_cost);
 
+  const supplierUSDArray = resCardData?.reservations.map((reservation) => Number(reservation.total_cost.substring(1,)))
+  const commissionArray = resCardData?.reservations.map((reservation) => Number(reservation.commission.substring(1,)))
+  const agentMarkupCurrency = "CAD"
+  const depositPay = depositCurrency === "CAD" ? convertCurrency(Number(depositAmount), depositCurrency, "USD") : Number(depositAmount) 
+  const inHousePay = inHouseCurrency === "CAD" ? convertCurrency(Number(inHouseAmount), depositCurrency, "USD") : Number(inHouseAmount) 
+  const customerPaymentPreConversion = depositPay + inHousePay
+  const customerPaymentCurrency = "USD"
+
+  console.log(supplierUSDArray, commissionArray, customerPaymentPreConversion)
+
+
   const {
-agentMarkup,
-profitAndLoss
-  } = computeBookedNoteFields(Number(depositAmount) + Number(inHouseAmount), odenzaCost, comission);
+expectedAgentMarkup: agentMarkup,
+expectedProfitAndLoss: profitAndLoss
+  } = supplierUSDArray && commissionArray ? computeExpected(supplierUSDArray!, commissionArray!, agentMarkupCurrency, customerPaymentPreConversion, customerPaymentCurrency) : {
+    expectedAgentMarkup: 0, expectedProfitAndLoss: 0
+  };
+  
 
   const commonData = {
     paymentCurrency: "USD" as const,
@@ -151,6 +167,16 @@ profitAndLoss
               onChange={(e) => setDepositAmount(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
+            <select
+              value = {depositCurrency}
+              onChange={(e)=>setDepositCurrency(e.target.value)}>
+              <option>
+                USD
+              </option>
+              <option>
+                CAD
+              </option>
+            </select>
           </div>
           <div className="flex-1">
             <label className="block text-sm font-medium mb-1">In House Charge</label>
@@ -161,6 +187,16 @@ profitAndLoss
               onChange={(e) => setInHouseAmount(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
+            <select
+              value = {inHouseCurrency}
+              onChange={(e)=>setInHouseCurrency(e.target.value)}>
+              <option>
+                USD
+              </option>
+              <option>
+                CAD
+              </option>
+            </select>
           </div>
         </div>
         <Button onClick={() => fillBookedNote(bookedNoteData)}>Fill Booked Note</Button>

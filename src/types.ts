@@ -55,3 +55,20 @@ export interface ResCardPanelProps {
 }
 
 export type BankPointType = "ATB" | "TD" | null
+
+export type PageData = {
+  certCode: string;
+  certNum: number;
+  groupCode: string;
+  profitAndLossText: string;
+  missingCurrencyElements: HTMLInputElement[];
+  supplierAmountsUsd: number[];
+  commAmountsUsd: number[];
+  agentMarkup: number | null;
+  agentMarkupCurrency: string | null;
+  missingMarkupCurrency: boolean;
+  inHouseCharge: number;
+  certificateDeposit: number;
+};
+
+export type Expected = { expectedProfitAndLoss: number, expectedAgentMarkup: number}

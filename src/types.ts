@@ -54,4 +54,4 @@ export interface ResCardPanelProps {
   data: ResCardData
 }
 
-
+export type BankPointType = "ATB" | "TD" | null

@@ -1,6 +1,9 @@
 import { localStore } from "./storage"
 import type { ResCardPanelProps } from "@/types"
 import mockClaudeData from '../data/mockClaudeData.json'
+import resCardGroupTypes from "../data/resCardGroupTypes.json"
+
+const MOCK_CERT_CODE: string = "DCFAPUSACV"
 
 export async function generateResCardData(): Promise<ResCardPanelProps> {
   const [
@@ -49,6 +52,7 @@ export async function generateResCardData(): Promise<ResCardPanelProps> {
   const mockReservation = mockClaudeData.reservations[0]
 
   const [tripCity, tripRegion] = tripLocation ? parseTripLocation(tripLocation) : []
+  const [marketingSource, groupType] = MOCK_CERT_CODE ? getCertTableFields(MOCK_CERT_CODE) : []
 
   const trip_name =
     tripLocation && checkInDate
@@ -62,8 +66,8 @@ export async function generateResCardData(): Promise<ResCardPanelProps> {
     data: {
       resCard: {
         trip_name,
-        marketing_source: marketing_source ?? mockResCard.marketing_source,
-        group_type: group_type ?? mockResCard.group_type,
+        marketing_source: marketingSource ?? mockResCard.marketing_source,
+        group_type: groupType ?? mockResCard.group_type,
         branch_num: branch_num ?? mockResCard.branch_num,
         locator_num: resolvedLocatorNum,
         trip_region: tripRegion ?? mockResCard.trip_region,
@@ -88,13 +92,11 @@ export async function generateResCardData(): Promise<ResCardPanelProps> {
 
 // "City, Region" (or "City, Region, Country" -- the country is dropped) -> [city, region].
 function parseTripLocation(location: string): [city: string, region: string] {
-    const firstIndex = location.indexOf(',');
-    if (firstIndex === -1) return [location.trim(), ""];
+    const substrings = location.split(",")
 
-    const city = location.slice(0, firstIndex).trim()
-    const afterCity = location.slice(firstIndex + 1)
-    const secondIndex = afterCity.indexOf(',')
-    const region = (secondIndex === -1 ? afterCity : afterCity.slice(0, secondIndex)).trim()
+    const property = substrings[0].trim()
+    const city = substrings[1].trim()
+    const region = substrings[2].trim()
 
     return [city, region];
 }
@@ -120,4 +122,16 @@ function parseCurrency(currencyString: string): string {
     } else if (currencyString.includes("CAD")) {
         return "CAD"
     } else return ""
+}
+
+function getCertTableFields(certCode: string): [marketingSource: string, groupType: string] {
+  const match = certCode.match(/[A-Z]+/)
+    if (!match) {
+    throw new Error(`Invalid certCode format: ${certCode}`);
+  }
+  const certCodeStripped = match[0]
+  const entry = resCardGroupTypes.find((entry) => entry.Program === certCodeStripped)
+  return entry 
+  ? [entry["Marketing Source"], entry["Group Code"]] 
+  : ["", ""];
 }

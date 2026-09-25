@@ -47,6 +47,8 @@ export async function generateResCardData(certCode?: string): Promise<ResCardPan
 
   const travelProperty = parseTravelProperty(resortName ?? "")
 
+  const odenzaPriceStripped = odenzaPrice?.replaceAll('$', '')
+
   return {
     data: {
       resCard: {
@@ -65,7 +67,7 @@ export async function generateResCardData(certCode?: string): Promise<ResCardPan
         confirmation_num: confirmationNumber ?? "",
         locator_num: resolvedLocatorNum ?? confirmationNumber ?? "",
         currency: currency ?? "",
-        total_cost: odenzaPrice ?? "",
+        total_cost: odenzaPriceStripped ?? "",
         start_date: checkInDate ?? "",
         end_date: checkOutDate ?? "",
         commission: mockReservation.commission

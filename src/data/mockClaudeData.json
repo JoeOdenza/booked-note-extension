@@ -19,7 +19,7 @@
       "travel_property": "Grand Wailea, A Waldorf Astoria Resort",
       "start_date": "2026-11-10",
       "end_date": "2026-11-17",
-      "commission": "$0"
+      "commission": "0"
     },
     {
       "vendor_name": "Hawaiian Airlines",
@@ -31,7 +31,7 @@
       "travel_property": "Hawaiian Airlines",
       "start_date": "2026-11-10",
       "end_date": "2026-11-17",
-      "commission": "$0"
+      "commission": "0"
     }
   ],
   "additionalTravelers": [

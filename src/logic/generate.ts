@@ -5,10 +5,9 @@ import resCardGroupTypes from "../data/resCardGroupTypes.json"
 import resCardBranchNo from "../data/resCardBranchNo.json"
 import stateProvinceNames from "../data/stateProvinceNames.json"
 
-const MOCK_CERT_CODE: string = "DCFAPUSACV"
 const BANK_POINT_TYPE: BankPointType = null
 
-export async function generateResCardData(): Promise<ResCardPanelProps> {
+export async function generateResCardData(certCode?: string): Promise<ResCardPanelProps> {
   const [
     confirmationNumber,
     resortName,
@@ -18,7 +17,6 @@ export async function generateResCardData(): Promise<ResCardPanelProps> {
     paymentCurrency,
     tripLocation,
     locator_num,
-    currency,
     additionalTravelers,
   ] = await Promise.all([
     localStore.get("confirmationNumber"),
@@ -29,25 +27,23 @@ export async function generateResCardData(): Promise<ResCardPanelProps> {
     localStore.get("paymentCurrency"),
     localStore.get("tripLocation"),
     localStore.get("locator_num"),
-    localStore.get("currency"),
     localStore.get("additionalTravelers"),
   ])
 
-  const mockResCard = mockClaudeData.resCard
   const mockReservation = mockClaudeData.reservations[0]
 
   const [tripCity, tripRegion] = tripLocation ? parseTripLocation(tripLocation) : []
-  const [marketingSource, groupType] = MOCK_CERT_CODE ? getCertTableFields(MOCK_CERT_CODE) : []
-  const branchNo = BANK_POINT_TYPE || tripRegion ? getBranchNo(BANK_POINT_TYPE, tripRegion) : "06"
+  const [marketingSource, groupType] = certCode ? getCertTableFields(certCode) : []
+  const branchNo = BANK_POINT_TYPE || tripRegion ? getBranchNo(BANK_POINT_TYPE, tripRegion) : ""
 
   const trip_name =
     tripCity && checkInDate
       ? parseTripName(tripCity, checkInDate)
-      : mockResCard.trip_name
+      : ""
 
-  const payment_Currency = parseCurrency(paymentCurrency ?? "")
+  const currency = parseCurrency(paymentCurrency ?? "")
 
-  const resolvedLocatorNum = locator_num ?? mockResCard.locator_num
+  const resolvedLocatorNum = locator_num ?? null
 
   const travelProperty = parseTravelProperty(resortName ?? "")
 
@@ -55,23 +51,23 @@ export async function generateResCardData(): Promise<ResCardPanelProps> {
     data: {
       resCard: {
         trip_name,
-        marketing_source: marketingSource ?? mockResCard.marketing_source,
-        group_type: groupType ?? mockResCard.group_type,
-        branch_num: branchNo ?? mockResCard.branch_num,
-        locator_num: confirmationNumber ?? resolvedLocatorNum,
-        trip_region: tripRegion ?? mockResCard.trip_region,
-        trip_city: tripCity ?? mockResCard.trip_city,
+        marketing_source: marketingSource ?? "",
+        group_type: groupType ?? "",
+        branch_num: branchNo ?? "",
+        locator_num: confirmationNumber ?? "",
+        trip_region: tripRegion ?? "",
+        trip_city: tripCity ?? "",
       },
       reservations: [{
         vendor_name: mockReservation.vendor_name,
         travel_category: mockReservation.travel_category,
-        travel_property: travelProperty ?? mockReservation.travel_property,
-        confirmation_num: confirmationNumber ?? resolvedLocatorNum,
-        locator_num: confirmationNumber ?? resolvedLocatorNum,
-        currency: payment_Currency ?? currency ?? mockReservation.currency,
-        total_cost: odenzaPrice ?? mockReservation.total_cost,
-        start_date: checkInDate ?? mockReservation.start_date,
-        end_date: checkOutDate ?? mockReservation.end_date,
+        travel_property: travelProperty ?? "",
+        confirmation_num: confirmationNumber ?? "",
+        locator_num: resolvedLocatorNum ?? confirmationNumber ?? "",
+        currency: currency ?? "",
+        total_cost: odenzaPrice ?? "",
+        start_date: checkInDate ?? "",
+        end_date: checkOutDate ?? "",
         commission: mockReservation.commission
       }],
       additionalTravelers: additionalTravelers ?? mockClaudeData.additionalTravelers,
@@ -87,8 +83,9 @@ function parseTripLocation(location: string): [city: string, region: string] {
     const city = substrings[1].trim()
     const cityFullName = (stateProvinceNames as Record<string, string>)[city.toUpperCase()] ?? city;
     const region = substrings[2].trim()
+    const regionFullName = (stateProvinceNames as Record<string, string>)[region.toUpperCase()] ?? region;
 
-    return [cityFullName, region];
+    return [cityFullName, regionFullName];
 }
 
 function parseMonthYearDate(date: string): string {

@@ -12,6 +12,14 @@ import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
 import { computeBookedNoteFields, fillBookedNote, FillBookedNoteArgs } from './scripting'
 import { Button } from './components/ui/button'
 
+const CERT_CODE_PATTERN = /^[A-Z]+\d*$/
+
+// Pulls the number out of a money string like "$1,180.50" or "2450.00"; blank or unparseable -> 0
+function parseMoney(value: string | undefined): number {
+  const num = Number((value ?? '').replace(/[^0-9.-]/g, ''))
+  return Number.isFinite(num) ? num : 0
+}
+
 function humanize(field: string): string {
   return field
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -21,6 +29,10 @@ function humanize(field: string): string {
 function App() {
 
   const [latest, setLatest] = useState<(PageEntry & { url: string }) | null>(null)
+  
+  // For Cert Code input
+  const [certCode, setCertCode] = useState("")
+  const isCertCodeValid = CERT_CODE_PATTERN.test(certCode)
 
   useEffect(() => {
     getPages().then((pages) => {
@@ -42,8 +54,23 @@ function App() {
 
   const [resCardData, setResCardData] = useState<ResCardData | null>(null)
   useEffect(() => {
-    generateResCardData().then((result) => setResCardData(result.data))
-  }, [])
+    generateResCardData(isCertCodeValid ? certCode: undefined).then((result) => setResCardData(result.data))
+  }, [certCode, isCertCodeValid])
+
+  // Writes a user edit back into resCardData so it survives re-renders and is included in the export.
+  // index picks the row for reservations / additionalTravelers; ignored for resCard
+  const updateResCardField = (section: keyof ResCardData, key: string, value: string, index = 0) => {
+    setResCardData((prev) => {
+      if (!prev) return prev
+      if (section === 'resCard') {
+        return { ...prev, resCard: { ...prev.resCard, [key]: value } }
+      }
+      return {
+        ...prev,
+        [section]: prev[section].map((row, i) => (i === index ? { ...row, [key]: value } : row)),
+      }
+    })
+  }
 
   const [depositAmount, setDepositAmount] = useState('100')
   const [inHouseAmount, setInHouseAmount] = useState('400')
@@ -67,8 +94,9 @@ function App() {
   const fields = site ? Object.keys(site.extract) : []
 
 
-  const comission = 0;
-  const odenzaCost = Number(resCardData?.reservations[0].total_cost.split('$')[1]);
+  // Both come from the (possibly user-edited) first reservation, so edits flow into agent markup
+  const comission = parseMoney(resCardData?.reservations[0]?.commission);
+  const odenzaCost = parseMoney(resCardData?.reservations[0]?.total_cost);
 
   const {
 agentMarkup,
@@ -108,7 +136,9 @@ profitAndLoss
       <div style={{ width: 240, padding: 10 }}>
         <h1 style={{ fontSize: '1.1rem', margin: '0 0 0px' }}>Res Tracker</h1>
       </div>
-      {resCardData && <ResCardPanel data={resCardData} agentMarkup={Math.round(agentMarkup * 100) / 100} onReset={handleReset} />}
+      {resCardData && <ResCardPanel data={resCardData} onFieldChange={updateResCardField}
+        agentMarkup={Math.round(agentMarkup * 100) / 100}
+        onReset={handleReset} certCode = {certCode} onCertCodeChange={setCertCode} isCertCodeValid={isCertCodeValid}/>}
 
       <div className="flex flex-col gap-3 my-3">
         <div className="flex gap-3">

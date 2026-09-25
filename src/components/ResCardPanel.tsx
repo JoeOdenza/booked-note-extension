@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ResCardPanelProps } from '@/types'
+import { ResCardData, ResCardPanelProps } from '@/types'
 import { RES_CARD_SCHEMA, RES_CARD_RESERVATION_SCHEMA, ADDITIONAL_TRAVELER_SCHEMA } from "@/schema"
 import {
   Card,
@@ -17,7 +17,16 @@ import {
 import { Button } from "./ui/button"
 import { downloadAsJson } from "@/logic/export"
 
-function InputField({ label, value }: { label: string; value: string }) {
+function InputField({
+    label,
+    value,
+    onChange,
+}: {
+    label: string
+    value: string
+    // Leave out to make the field read-only (e.g. calculated values)
+    onChange?: (value: string) => void
+}) {
 
     const handleCopy = () =>{
         navigator.clipboard.writeText(String(value))
@@ -30,7 +39,9 @@ function InputField({ label, value }: { label: string; value: string }) {
             </label>
             <input
                 value={value}
-                readOnly
+                onChange={(e) => onChange?.(e.target.value)}
+                readOnly={!onChange}
+                placeholder="-"
                 title={value}
                 className="w-full min-w-0 truncate rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             />
@@ -79,9 +90,20 @@ function SelectField({
 
 export default function ResCardPanel({
     data,
+    onFieldChange,
     agentMarkup,
     onReset,
-}: ResCardPanelProps & { agentMarkup: number; onReset: () => Promise<void> }) {
+    certCode,
+    onCertCodeChange,
+    isCertCodeValid,
+}: ResCardPanelProps & {
+    onFieldChange: (section: keyof ResCardData, key: string, value: string, index?: number) => void
+    agentMarkup: number
+    onReset: () => Promise<void>
+    certCode: string
+    onCertCodeChange: (value: string) => void
+    isCertCodeValid: boolean
+  }) {
 
     // Index selection for reservations
     const [resIndex, setResIndex] = useState<number>(0)
@@ -123,6 +145,22 @@ export default function ResCardPanel({
           <p className="text-xs text-destructive">Profile number must be 6 digits</p>
         )}
         */}
+        <label
+          htmlFor="certCode"
+          className="truncate text-sm font-medium text-muted-foreground"
+        >
+          Certificate Code
+        </label>
+        <input
+          id="certCode"
+          value={certCode}
+          onChange={(e) => onCertCodeChange(e.target.value)}
+          placeholder="Client's Certificate Code"
+          className="w-full min-w-0 truncate rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        />
+        {certCode && !isCertCodeValid && (
+          <p className="text-xs text-destructive">Please enter a valid Certificate Code</p>
+        )}
         <div className="flex gap-2 self-end">
           <Button type="button" variant="outline" size="sm" onClick={handleReset}>
             Reset
@@ -155,7 +193,8 @@ export default function ResCardPanel({
                     <InputField
                         key={field.key}
                         label={field.label}
-                        value={data.resCard[field.key] ?? "-"}
+                        value={data.resCard[field.key] ?? ""}
+                        onChange={(v) => onFieldChange("resCard", field.key, v)}
                     />
                 ))}
               </CardContent>
@@ -188,6 +227,7 @@ export default function ResCardPanel({
                         key={field.key}
                         label={field.label}
                         value={data.reservations[resIndex][field.key] ?? ""}
+                        onChange={(v) => onFieldChange("reservations", field.key, v, resIndex)}
                     />
                 ))}
               </CardContent>
@@ -215,6 +255,7 @@ export default function ResCardPanel({
                           key={field.key}
                           label={field.label}
                           value={data.additionalTravelers[addTravelerIndex][field.key] ?? ""}
+                          onChange={(v) => onFieldChange("additionalTravelers", field.key, v, addTravelerIndex)}
                       />
                   ))}
                 </>

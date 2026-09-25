@@ -63,6 +63,7 @@ export interface LocalStore<Schema> {
     get<K extends keyof Schema & string>(key: K): Promise<Schema[K] | undefined>
     set<K extends keyof Schema & string>(key: K, value: Schema[K]): Promise<void>
     remove(key: keyof Schema & string): Promise<void>
+    clear(): Promise<void>
 }
 
 // Schema is pinned here once via the type argument at the call site below, so nothing
@@ -80,6 +81,10 @@ function createLocalStore<Schema>(): LocalStore<Schema> {
 
         async remove(key: keyof Schema & string): Promise<void> {
             await chrome.storage.local.remove(key)
+        },
+
+        async clear(): Promise<void> {
+            await chrome.storage.local.clear()
         },
     }
 }

@@ -54,6 +54,15 @@ function App() {
     )
   }
 
+  // Wipes everything in chrome.storage.local, then rebuilds the res card from the now-empty store
+  const handleReset = async () => {
+    await localStore.clear()
+    setLatest(null)
+    setIsClaude(DEFAULT_EXTRACTION_MODE === 'claude')
+    const result = await generateResCardData()
+    setResCardData(result.data)
+  }
+
   const site = latest ? findMatchingSite(latest.url) : undefined
   const fields = site ? Object.keys(site.extract) : []
 
@@ -99,7 +108,7 @@ profitAndLoss
       <div style={{ width: 240, padding: 10 }}>
         <h1 style={{ fontSize: '1.1rem', margin: '0 0 0px' }}>Res Tracker</h1>
       </div>
-      {resCardData && <ResCardPanel data={resCardData} agentMarkup={Math.round(agentMarkup * 100) / 100} />}
+      {resCardData && <ResCardPanel data={resCardData} agentMarkup={Math.round(agentMarkup * 100) / 100} onReset={handleReset} />}
 
       <div className="flex flex-col gap-3 my-3">
         <div className="flex gap-3">

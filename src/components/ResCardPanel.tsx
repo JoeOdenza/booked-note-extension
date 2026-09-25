@@ -41,6 +41,10 @@ function InputField({ label, value }: { label: string; value: string }) {
     )
 }
 
+// ClientBase profile number disabled for now
+// // ClientBase profile numbers are exactly 6 digits
+// const PROFILE_NUM_PATTERN = /^\d{6}$/
+
 function SelectField({
     label,
     value,
@@ -73,26 +77,65 @@ function SelectField({
 }
 
 
-export default function ResCardPanel({ data, agentMarkup }: ResCardPanelProps & {agentMarkup : number}) {
-    
+export default function ResCardPanel({
+    data,
+    agentMarkup,
+    onReset,
+}: ResCardPanelProps & { agentMarkup: number; onReset: () => Promise<void> }) {
+
     // Index selection for reservations
     const [resIndex, setResIndex] = useState<number>(0)
 
     //Index selection for additional travelers
     const [addTravelerIndex, setAddTravelerIndex] = useState<number>(0)
 
+    // ClientBase profile number disabled for now
+    // // Only used to name the export file -- not persisted
+    // const [profileNum, setProfileNum] = useState("")
+    // const isProfileNumValid = PROFILE_NUM_PATTERN.test(profileNum)
+
+    const handleReset = async () => {
+        if (!window.confirm("Clear all stored data and reset the res card?")) return
+        // setProfileNum("")
+        setResIndex(0)
+        setAddTravelerIndex(0)
+        await onReset()
+    }
 
     return (
       <div className="flex w-[440px] flex-col gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="self-end"
-          onClick={() => downloadAsJson(data, { agentMarkup })}
+        {/* ClientBase profile number disabled for now
+        <label
+          htmlFor="clientBaseProfileNumber"
+          className="truncate text-sm font-medium text-muted-foreground"
         >
-          Export JSON
-        </Button>
+          ClientBase Profile Number
+        </label>
+        <input
+          id="clientBaseProfileNumber"
+          value={profileNum}
+          onChange={(e) => setProfileNum(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          inputMode="numeric"
+          placeholder="6-digit profile number"
+          className="w-full min-w-0 truncate rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        />
+        {profileNum && !isProfileNumValid && (
+          <p className="text-xs text-destructive">Profile number must be 6 digits</p>
+        )}
+        */}
+        <div className="flex gap-2 self-end">
+          <Button type="button" variant="outline" size="sm" onClick={handleReset}>
+            Reset
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => downloadAsJson(data, { agentMarkup })}
+          >
+            Export File
+          </Button>
+        </div>
         <Tabs defaultValue="resCard" className="w-[440px]">
           <TabsList className="w-full">
             <TabsTrigger value="resCard">Res Card</TabsTrigger>

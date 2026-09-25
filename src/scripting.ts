@@ -1,7 +1,7 @@
 // import type { QualifiedFieldKey } from "./schema";
 // import type { StorageShape } from "./types";
 import groupNamesData from "./data/resCardGroupTypes.json";
-import type { Expected } from "./types"
+import type { Expected, ResCardData } from "./types"
 
 // One row of res_card_group_names.json -- a lookup table from cert program code to the
 // Res Card's Marketing Source/Group Code, exported (messily) straight from a spreadsheet, so
@@ -135,10 +135,9 @@ async function setSelectValue(
     args: [selector, value, matchBy],
   });
 
-  // Some dropdowns on this page trigger a real ASP.NET postback (full reload) on change,
-  // not just an AJAX partial update. If we move on to the next field immediately, that
-  // reload can finish afterward and wipe out whatever we just set. Give it a moment to
-  // settle before returning control to the caller.
+  // Dropdowns on this page trigger ASP.NET postbacks (partial or full) on change. If we
+  // move on before it finishes, the next postback aborts it or its response wipes out
+  // what we just set.
   await waitForTabIdle(tabId);
 
   return result;
@@ -217,6 +216,8 @@ interface FillBookedNoteLossArgs {
   inHouseChargeAmount: number;
   depositCurrency: PaymentCurrency;
   inHouseCurrency: PaymentCurrency;
+  expectedAgentMarkup: number;
+  resCardData: ResCardData | null;
 }
 
 interface FillBookedNoteProfitArgs {
@@ -227,6 +228,8 @@ interface FillBookedNoteProfitArgs {
   inHouseChargeAmount: number;
   depositCurrency: PaymentCurrency;
   inHouseCurrency: PaymentCurrency;
+  expectedAgentMarkup: number;
+  resCardData: ResCardData | null;
 }
 
 export type FillBookedNoteArgs =
@@ -251,6 +254,45 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
     `Deposit: $${args.depositAmount} ${args.depositCurrency} | In-House: $${args.inHouseChargeAmount} ${args.inHouseCurrency}`,
   );
 
+
+  // Agent Markup and Currency Fill in
+  await setInputValue(
+    tabId,
+    "#txtAgtMarkUp",
+    args.expectedAgentMarkup.toFixed(2)
+  );
+  await setSelectValue(
+    tabId,
+    "#drpCurrMark",
+    "CAD",
+  );
+
+  await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", paymentDate);
+  await setSelectValue(tabId, "#grdVendor_ctl02_drpNetGross", "Net", "text");
+  await setSelectValue(tabId, "#grdVendor_ctl02_drpPayment", "1", "text");
+
+  // Base Amount, Total Amount, and Currency Fill in
+  const baseAmount = args.resCardData?.reservations[0]?.total_cost
+  if (baseAmount !== undefined) {
+    await setInputValue(tabId, "#grdVendor_ctl02_txtBaseAmt", baseAmount)
+    await setInputValue(tabId, "#grdVendor_ctl02_txtTotalFare", baseAmount)
+    await setInputValue(tabId, "#grdVendor_ctl02_grdPayment_ctl02_txtValue", baseAmount)
+  }
+  
+  const currency = args.resCardData?.reservations[0]?.Currency
+  if (currency !== undefined) {
+    await setSelectValue(
+      tabId,
+      "#grdVendor_ctl02_drpCurrVendor",
+      currency
+    )
+    await setSelectValue(
+      tabId,
+      "#grdVendor_ctl02_grdPayment_ctl02_drpCurr",
+      currency
+    );
+  }
+
   switch (args.kind) {
     case "loss":
       await setSelectValue(tabId, "#dropBookingFulfillment", "YES", "text");
@@ -272,25 +314,9 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
     }
   }
 
-  await setSelectValue(
-    tabId,
-    "#grdVendor_ctl02_drpCurrVendor",
-    paymentCurrency,
-    "text",
-  );
-  await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", paymentDate);
-  await setSelectValue(tabId, "#grdVendor_ctl02_drpNetGross", "Net", "text");
-  await setSelectValue(tabId, "#grdVendor_ctl02_drpPayment", "1", "text");
-
   await setRadioChecked(
     tabId,
     "#grdVendor_ctl02_grdPayment_ctl02_radCardType_6",
-  );
-  await setSelectValue(
-    tabId,
-    "#grdVendor_ctl02_grdPayment_ctl02_drpCurr",
-    paymentCurrency,
-    "text",
   );
 
   await setDateValue(
@@ -330,37 +356,13 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
 //   return { profitAndLoss, agentMarkup };
 // }
 
-// function to match res card group names with certificate letters, stored back into chrome storage for res card detection
-// export async function matchGroupTypeAndMarketingSource(
-//   certificateCode: string,
-// ) {
-//   const normalizedCode = lettersOnly(certificateCode);
-//   if (!normalizedCode) return;
-
-//   const match = GROUP_NAME_ENTRIES.find(
-//     (entry) => lettersOnly(entry.Program) === normalizedCode,
-//   );
-//   if (!match) return;
-
-//   const stored =
-//     await chrome.storage.local.get<StorageShape>("resCardFieldValues");
-//   const resCardFieldValues = {
-//     ...stored.resCardFieldValues,
-//     marketing_source: match["Marketing Source"],
-//     group_type: match["Group Code"],
-//   };
-
-//   await chrome.storage.local.set({ resCardFieldValues });
-// }
-
 
 // From booked-note-chcker
 export function computeExpected(
   supplierAmountsUsd: number[], 
   commAmountsUsd: number[], 
   agentMarkupCurrency: string, 
-  customerPaymentPreConversion: number, 
-  customerPaymentCurrency: string): Expected {
+  totalCustomerPayment: number): Expected {
     const totalSupplierPaid = supplierAmountsUsd.reduce(
     (sum, n) => sum + n,
     0,
@@ -369,11 +371,7 @@ export function computeExpected(
       (sum, n) => sum + n,
       0,
     );
-    const totalCustomerPayment = convertCurrency(
-      customerPaymentPreConversion,
-      customerPaymentCurrency,
-      "USD",
-    );
+
     const bookingDiff = totalCustomerPayment - totalSupplierPaid;
     const expectedProfitAndLoss = convertCurrency(
       bookingDiff + totalCommission,

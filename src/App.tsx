@@ -101,22 +101,24 @@ function App() {
   const comission = parseMoney(resCardData?.reservations[0]?.commission);
   const odenzaCost = parseMoney(resCardData?.reservations[0]?.total_cost);
 
-  const supplierUSDArray = resCardData?.reservations.map((reservation) => Number(reservation.total_cost.substring(1,)))
-  const commissionArray = resCardData?.reservations.map((reservation) => Number(reservation.commission.substring(1,)))
+  const supplierUSDArray = resCardData?.reservations.map((reservation) => reservation.currency === "USD" ? 
+    Number(reservation.total_cost.replaceAll('$','')) : convertCurrency(Number(reservation.total_cost.replaceAll('$','')), "CAD", "USD"))
+  const commissionArray = resCardData?.reservations.map((reservation) => reservation.currency === "USD" ? 
+    Number(reservation.commission.replaceAll('$','')) : convertCurrency(Number(reservation.commission.replaceAll('$','')), "CAD", "USD"))
   const agentMarkupCurrency = "CAD"
   const depositPay = depositCurrency === "CAD" ? convertCurrency(Number(depositAmount), depositCurrency, "USD") : Number(depositAmount) 
   const inHousePay = inHouseCurrency === "CAD" ? convertCurrency(Number(inHouseAmount), depositCurrency, "USD") : Number(inHouseAmount) 
-  const customerPaymentPreConversion = depositPay + inHousePay
-  const customerPaymentCurrency = "USD"
+  const totalCustomerPayment = depositPay + inHousePay
+  const supplierCurrencyArray = resCardData?.reservations.map((reservation) => reservation.currency)
 
-  console.log(supplierUSDArray, commissionArray, customerPaymentPreConversion)
+  console.log(supplierUSDArray, commissionArray)
 
 
   const {
 expectedAgentMarkup: agentMarkup,
 expectedProfitAndLoss: profitAndLoss
-  } = supplierUSDArray && commissionArray ? computeExpected(supplierUSDArray!, commissionArray!, agentMarkupCurrency, customerPaymentPreConversion, customerPaymentCurrency) : {
-    expectedAgentMarkup: 0, expectedProfitAndLoss: 0
+  } = supplierUSDArray && commissionArray ? computeExpected(supplierUSDArray!, commissionArray!, agentMarkupCurrency, totalCustomerPayment) : {
+    expectedAgentMarkup: -123, expectedProfitAndLoss: -123
   };
   
 
@@ -125,7 +127,9 @@ expectedProfitAndLoss: profitAndLoss
     depositAmount: Number(depositAmount),
     inHouseChargeAmount: Number(inHouseAmount),
     depositCurrency: depositCurrency,
-    inHouseCurrency: inHouseCurrency
+    inHouseCurrency: inHouseCurrency,
+    expectedAgentMarkup: agentMarkup,
+    resCardData: resCardData
   };
 
   const bookedNoteData: FillBookedNoteArgs = profitAndLoss >= 0

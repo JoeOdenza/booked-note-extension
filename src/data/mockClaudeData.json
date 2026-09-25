@@ -35,5 +35,21 @@
     }
   ],
   "additionalTravelers": [
+    {
+      "add_first_name": "Zainab",
+      "add_middle_name": "",
+      "add_last_name": "Sheikh",
+      "add_dob": "1990-04-12",
+      "gender": "Male",
+      "add_citizenship": "United States"
+    },
+    {
+      "add_first_name": "Noah",
+      "add_middle_name": "",
+      "add_last_name": "Smith",
+      "add_dob": "2015-08-23",
+      "gender": "Male",
+      "add_citizenship": "United States"
+    }
   ]
 }

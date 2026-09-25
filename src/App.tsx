@@ -10,6 +10,7 @@ import { generateResCardData } from './logic/generate'
 import { Switch } from './components/ui/switch'
 import { localStore, DEFAULT_EXTRACTION_MODE } from './logic/storage'
 import { convertCurrency, computeExpected, fillBookedNote, FillBookedNoteArgs } from './scripting'
+import type { PaymentCurrency } from './scripting'
 import { Button } from './components/ui/button'
 
 const CERT_CODE_PATTERN = /^[A-Z]+\d*$/
@@ -74,8 +75,8 @@ function App() {
 
   const [depositAmount, setDepositAmount] = useState('100')
   const [inHouseAmount, setInHouseAmount] = useState('400')
-  const [depositCurrency, setDepositCurrency] = useState('USD')
-  const [inHouseCurrency, setInHouseCurrency] = useState('USD')
+  const [depositCurrency, setDepositCurrency] = useState<PaymentCurrency>('USD')
+  const [inHouseCurrency, setInHouseCurrency] = useState<PaymentCurrency>('USD')
 
   const setIsClaudeWiLocal = (val: boolean) => {
     localStore.set('extractionMode', val ? 'claude' : 'dom').then(
@@ -123,6 +124,8 @@ expectedProfitAndLoss: profitAndLoss
     paymentCurrency: "USD" as const,
     depositAmount: Number(depositAmount),
     inHouseChargeAmount: Number(inHouseAmount),
+    depositCurrency: depositCurrency,
+    inHouseCurrency: inHouseCurrency
   };
 
   const bookedNoteData: FillBookedNoteArgs = profitAndLoss >= 0
@@ -169,7 +172,7 @@ expectedProfitAndLoss: profitAndLoss
             />
             <select
               value = {depositCurrency}
-              onChange={(e)=>setDepositCurrency(e.target.value)}>
+              onChange={(e)=>setDepositCurrency(e.target.value as PaymentCurrency)}>
               <option>
                 USD
               </option>
@@ -189,7 +192,7 @@ expectedProfitAndLoss: profitAndLoss
             />
             <select
               value = {inHouseCurrency}
-              onChange={(e)=>setInHouseCurrency(e.target.value)}>
+              onChange={(e)=>setInHouseCurrency(e.target.value as PaymentCurrency)}>
               <option>
                 USD
               </option>

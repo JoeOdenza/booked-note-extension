@@ -215,6 +215,8 @@ interface FillBookedNoteLossArgs {
   paymentCurrency: PaymentCurrency;
   depositAmount: number;
   inHouseChargeAmount: number;
+  depositCurrency: PaymentCurrency;
+  inHouseCurrency: PaymentCurrency;
 }
 
 interface FillBookedNoteProfitArgs {
@@ -223,6 +225,8 @@ interface FillBookedNoteProfitArgs {
   paymentCurrency: PaymentCurrency;
   depositAmount: number;
   inHouseChargeAmount: number;
+  depositCurrency: PaymentCurrency;
+  inHouseCurrency: PaymentCurrency;
 }
 
 export type FillBookedNoteArgs =
@@ -244,7 +248,7 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
   await setInputValue(
     tabId,
     "#txtInHouseCharges",
-    `Deposit: $${args.depositAmount} ${args.paymentCurrency} | In-House: $${args.inHouseChargeAmount} ${args.paymentCurrency}`,
+    `Deposit: $${args.depositAmount} ${args.depositCurrency} | In-House: $${args.inHouseChargeAmount} ${args.inHouseCurrency}`,
   );
 
   switch (args.kind) {

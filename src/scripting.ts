@@ -1,7 +1,53 @@
 // import type { QualifiedFieldKey } from "./schema";
 // import type { StorageShape } from "./types";
+import { act } from "react";
 import groupNamesData from "./data/resCardGroupTypes.json";
 import type { Expected, ResCardData } from "./types"
+
+// Booked Note Selectors
+const BOOKING_PL_SELECTOR = '#txtBookingPL'
+const CHK_CALCULATION_VERIFIED = '#chkBookingPL'
+const SELECT_HAS_FULFILLMENT_SELECTOR = '#dropBookingFulfillment'
+const SELECT_FULFILLMENT_TYPE_SELECTOR = '#dropfulfillmentType'
+const SELECT_BOOKING_TYPE_SELECTOR = '#dropBookingType'
+const SELECT_ADD_GUEST_CC = '#drpgCC'
+const GUESTS_TRAVELLING = '#txtTravellers'
+const GUEST_PHONE_NUM = '#txtGuestPhoneNo'
+const GUEST_EMAIL = '#txtGuestEmail'
+const GUEST_EMAIL_SEND = '#txtRPTEmail'
+const AGENT_MARKUP = '#txtAgtMarkUp'
+const SELECT_AGENT_MARKUP_CURRENCY = '#drpCurrMark'
+const IN_HOUSE_CHARGES_AND_DEPOSIT = '#txtInHouseCharges'
+const SUPPLIER_TABLE = '#grdVendor > tbody'
+
+
+// Supplier information selector, more than one set
+const BASE_SELECT_SUPPLIER_CURRENCY = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpCurrVendor`
+const BASE_ACTUAL_BOOKING_DATE = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtCreateDate`
+const BASE_SELECT_GROSS_NET = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpNetGross`
+const BASE_SELECT_ATTACH_INVOICE = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpAPropInvoice`
+const BASE_BASE_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtBaseAmt`
+const BASE_TAX_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtTaxAmt`
+const BASE_COMMISSION_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtCommAmt`
+const BASE_TOTAL_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtTotalFare`
+const BASE_SELECT_PAYMENT_COUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpPayment`
+
+//Number of rows based on payment count
+const BASE_PAYMENT_RADIO_SELECTION = (num: number, innerNum: number) => 
+  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_radCardType_6`
+const BASE_PAYMENT_VALUE = (num: number, innerNum: number) => 
+  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_txtValue`
+const BASE_SELECT_PAYMENT_CURRENCY = (num: number, innerNum: number) => 
+  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_drpCurr`
+const BASE_PAYMENT_DATE  = (num: number, innerNum: number) => 
+  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_txtDate`
+
+//Odenza Card Only
+const BASE_SELECT_CARD_NAME = '#grdVendor_ctl02_grdPayment_ctl02_txtDate'
+
+// Guest Card or Uplift Card Only
+const BASE_LAST_FOUR_DIGITS = '#grdVendor_ctl02_grdPayment_ctl02_txtCardDigit'
+
 
 // One row of res_card_group_names.json -- a lookup table from cert program code to the
 // Res Card's Marketing Source/Group Code, exported (messily) straight from a spreadsheet, so
@@ -31,9 +77,14 @@ export async function getActiveTab(): Promise<chrome.tabs.Tab> {
 // Sets an input's value on the page and fires the events the page's own JS listens for.
 // Uses the native value setter instead of `el.value =` directly, since some frameworks
 // (React, or ASP.NET's own postback wiring) override the plain setter and won't notice a raw assignment.
-function fillValue(selector: string, value: string | number): boolean {
+function fillValue(selector: string, value: string | number | boolean): boolean {
   const el = document.querySelector(selector) as HTMLInputElement | null;
   if (!el) return false;
+
+  if (el.type === "checkbox") {
+  if (el.checked !== Boolean(value)) el.click();
+    return true;
+  }
 
   const proto = Object.getPrototypeOf(el);
   const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
@@ -51,7 +102,7 @@ function fillValue(selector: string, value: string | number): boolean {
 async function setInputValue(
   tabId: number,
   selector: string,
-  value: string | number,
+  value: string | number | boolean,
 ) {
   const [{ result }] = await chrome.scripting.executeScript({
     target: { tabId },
@@ -191,6 +242,22 @@ function waitForTabIdle(tabId: number, timeoutMs = 1500): Promise<void> {
   });
 }
 
+// Count direct rows of supplier info grid
+function countRows(selector: string): number {
+  return Array.from(document.querySelectorAll(`${selector} > tr`))
+    .filter((tr) => !tr.querySelector(":scope > th"))
+    .length
+}
+
+async function getRowCount(tabId: number, selector: string): Promise<number> {
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: countRows,
+    args: [selector],
+  });
+  return result ?? 0;
+}
+
 export const FULFILLMENT_TYPE = {
   RCI: "RCI",
   DIAMOND: "Diamond",
@@ -247,65 +314,79 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
       ? -Math.abs(args.lossAmount)
       : Math.abs(args.profitAmount);
 
-  await setInputValue(tabId, "#txtBookingPL", Math.round(pnl * 100) / 100);
+  // P&L Fill
+  await setInputValue(tabId, `${BOOKING_PL_SELECTOR}`, Math.round(pnl * 100) / 100);
+  await setInputValue(tabId, `${CHK_CALCULATION_VERIFIED}`, true)
+
+  // In-house charges and certificate deposits fill in
   await setInputValue(
     tabId,
-    "#txtInHouseCharges",
+    `${IN_HOUSE_CHARGES_AND_DEPOSIT}`,
     `Deposit: $${args.depositAmount} ${args.depositCurrency} | In-House: $${args.inHouseChargeAmount} ${args.inHouseCurrency}`,
   );
-
 
   // Agent Markup and Currency Fill in
   await setInputValue(
     tabId,
-    "#txtAgtMarkUp",
+    `${AGENT_MARKUP}`,
     args.expectedAgentMarkup.toFixed(2)
   );
   await setSelectValue(
     tabId,
-    "#drpCurrMark",
+    `${SELECT_AGENT_MARKUP_CURRENCY}`,
     "CAD",
   );
 
-  await setDateValue(tabId, "#grdVendor_ctl02_txtCreateDate", paymentDate);
-  await setSelectValue(tabId, "#grdVendor_ctl02_drpNetGross", "Net", "text");
-  await setSelectValue(tabId, "#grdVendor_ctl02_drpPayment", "1", "text");
-
-  // Base Amount, Total Amount, and Currency Fill in
-  const baseAmount = args.resCardData?.reservations[0]?.total_cost
-  if (baseAmount !== undefined) {
-    await setInputValue(tabId, "#grdVendor_ctl02_txtBaseAmt", baseAmount)
-    await setInputValue(tabId, "#grdVendor_ctl02_txtTotalFare", baseAmount)
-    await setInputValue(tabId, "#grdVendor_ctl02_grdPayment_ctl02_txtValue", baseAmount)
-  }
+  // Supplier info loop, check for number of rows and fill in based off number
+  const supplierRowCount = await getRowCount(tabId, SUPPLIER_TABLE);
+  console.log("Supplier rows:", supplierRowCount);
   
-  const currency = args.resCardData?.reservations[0]?.Currency
-  if (currency !== undefined) {
-    await setSelectValue(
-      tabId,
-      "#grdVendor_ctl02_drpCurrVendor",
-      currency
-    )
-    await setSelectValue(
-      tabId,
-      "#grdVendor_ctl02_grdPayment_ctl02_drpCurr",
-      currency
-    );
+  const actualInputRowCount = Math.round(supplierRowCount / 2)
+
+  for(let i = 2; i < 2 + actualInputRowCount; i++) {
+    await setSelectValue(tabId, BASE_SELECT_SUPPLIER_CURRENCY(i), "CAD")
+    await setDateValue(tabId, BASE_ACTUAL_BOOKING_DATE(i), paymentDate)
+    await setSelectValue(tabId, BASE_SELECT_GROSS_NET(i), "Gross", "text")
+    await setSelectValue(tabId, BASE_SELECT_ATTACH_INVOICE(i), "YES")
+    await setInputValue(tabId, BASE_BASE_AMOUNT(i), 330.21)
+    await setInputValue(tabId, BASE_TAX_AMOUNT(i), 0)
+    await setInputValue(tabId, BASE_COMMISSION_AMOUNT(i), 50)
+    await setInputValue(tabId, BASE_TOTAL_AMOUNT(i), 330.21)
+    await setSelectValue(tabId, BASE_SELECT_PAYMENT_COUNT(i), "1", "text")
+
+    // Inner Payment
+    for (let j = 2; j < 2 + 1; j++) {
+      await setRadioChecked(tabId, BASE_PAYMENT_RADIO_SELECTION(i, j))
+      await setInputValue(tabId, BASE_PAYMENT_VALUE(i, j), 330.21)
+      await setSelectValue(tabId, BASE_SELECT_PAYMENT_CURRENCY(i, j), 'CAD')
+      await setInputValue(tabId, BASE_PAYMENT_DATE(i, j), paymentDate)
+    }
   }
 
+  // Fulfillment exist check
   switch (args.kind) {
-    case "loss":
-      await setSelectValue(tabId, "#dropBookingFulfillment", "YES", "text");
+    case "loss": {
+      const fulfillmentType = 'Diamond' as FulfillmentType
+      await setSelectValue(tabId, `${SELECT_HAS_FULFILLMENT_SELECTOR}`, "YES", "text");
       await setSelectValue(
         tabId,
-        "#dropfulfillmentType",
-        args.fulfillmentType,
+        `${SELECT_FULFILLMENT_TYPE_SELECTOR}`,
+        fulfillmentType,
         "text",
       );
+      if (fulfillmentType !== FULFILLMENT_TYPE.RCI)
+        await setSelectValue(
+          tabId,
+          `${SELECT_BOOKING_TYPE_SELECTOR}`,
+          'Vegas',
+          "text",
+        );
       break;
-    case "profit":
-      await setSelectValue(tabId, "#dropBookingFulfillment", "NO", "text");
+      }
+    case "profit": {
+      await setSelectValue(tabId, `${SELECT_HAS_FULFILLMENT_SELECTOR}`, "NO", "text");
       break;
+    }
     default: {
       const exhaustive: never = args;
       throw new Error(
@@ -314,16 +395,11 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
     }
   }
 
-  await setRadioChecked(
-    tabId,
-    "#grdVendor_ctl02_grdPayment_ctl02_radCardType_6",
-  );
-
-  await setDateValue(
-    tabId,
-    "#grdVendor_ctl02_grdPayment_ctl02_txtDate",
-    paymentDate,
-  );
+  // Certificate Holder information
+  await setInputValue(tabId, `${GUESTS_TRAVELLING}`, "JOE LIN, SIKIJ KARKI")
+  await setInputValue(tabId, `${GUEST_PHONE_NUM}`, '604-888-8888')
+  await setInputValue(tabId, `${GUEST_EMAIL}`, 'joe@odenza.com')
+  await setInputValue(tabId, `${GUEST_EMAIL_SEND}`, 'joe@odenza.com')
 }
 
 // export function computeBookedNoteFields(

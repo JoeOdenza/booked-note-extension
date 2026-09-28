@@ -21,26 +21,35 @@ const IN_HOUSE_CHARGES_AND_DEPOSIT = '#txtInHouseCharges'
 const SUPPLIER_TABLE = '#grdVendor > tbody'
 
 
-// Supplier information selector, more than one set
-const BASE_SELECT_SUPPLIER_CURRENCY = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpCurrVendor`
-const BASE_ACTUAL_BOOKING_DATE = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtCreateDate`
-const BASE_SELECT_GROSS_NET = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpNetGross`
-const BASE_SELECT_ATTACH_INVOICE = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpAPropInvoice`
-const BASE_BASE_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtBaseAmt`
-const BASE_TAX_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtTaxAmt`
-const BASE_COMMISSION_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtCommAmt`
-const BASE_TOTAL_AMOUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_txtTotalFare`
-const BASE_SELECT_PAYMENT_COUNT = (num: number): string => `#grdVendor_ctl${String(num).padStart(2, '0')}_drpPayment`
+// ASP.NET GridView row/control ids are zero-padded to two digits (ctl02, ctl03, ...)
+const pad2 = (n: number): string => String(n).padStart(2, '0')
 
-//Number of rows based on payment count
-const BASE_PAYMENT_RADIO_SELECTION = (num: number, innerNum: number) => 
-  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_radCardType_6`
-const BASE_PAYMENT_VALUE = (num: number, innerNum: number) => 
-  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_txtValue`
-const BASE_SELECT_PAYMENT_CURRENCY = (num: number, innerNum: number) => 
-  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_drpCurr`
-const BASE_PAYMENT_DATE  = (num: number, innerNum: number) => 
-  `#grdVendor_ctl${String(num).padStart(2, '0')}_grdPayment_ctl${String(innerNum).padStart(2, '0')}_txtDate`
+// Supplier information selectors, one set per supplier row
+function supplierRow(row: number) {
+  const p = `#grdVendor_ctl${pad2(row)}`
+  return {
+    currency:      `${p}_drpCurrVendor`,
+    bookingDate:   `${p}_txtCreateDate`,
+    grossNet:      `${p}_drpNetGross`,
+    attachInvoice: `${p}_drpAPropInvoice`,
+    baseAmount:    `${p}_txtBaseAmt`,
+    taxAmount:     `${p}_txtTaxAmt`,
+    commission:    `${p}_txtCommAmt`,
+    totalAmount:   `${p}_txtTotalFare`,
+    paymentCount:  `${p}_drpPayment`,
+
+    // Number of payment rows is based on the row's payment count
+    payment(inner: number) {
+      const q = `${p}_grdPayment_ctl${pad2(inner)}`
+      return {
+        radio:    `${q}_radCardType_6`,
+        value:    `${q}_txtValue`,
+        currency: `${q}_drpCurr`,
+        date:     `${q}_txtDate`,
+      }
+    },
+  }
+}
 
 //Odenza Card Only
 const BASE_SELECT_CARD_NAME = '#grdVendor_ctl02_grdPayment_ctl02_txtDate'
@@ -344,22 +353,24 @@ export async function fillBookedNote(args: FillBookedNoteArgs) {
   const actualInputRowCount = Math.round(supplierRowCount / 2)
 
   for(let i = 2; i < 2 + actualInputRowCount; i++) {
-    await setSelectValue(tabId, BASE_SELECT_SUPPLIER_CURRENCY(i), "CAD")
-    await setDateValue(tabId, BASE_ACTUAL_BOOKING_DATE(i), paymentDate)
-    await setSelectValue(tabId, BASE_SELECT_GROSS_NET(i), "Gross", "text")
-    await setSelectValue(tabId, BASE_SELECT_ATTACH_INVOICE(i), "YES")
-    await setInputValue(tabId, BASE_BASE_AMOUNT(i), 330.21)
-    await setInputValue(tabId, BASE_TAX_AMOUNT(i), 0)
-    await setInputValue(tabId, BASE_COMMISSION_AMOUNT(i), 50)
-    await setInputValue(tabId, BASE_TOTAL_AMOUNT(i), 330.21)
-    await setSelectValue(tabId, BASE_SELECT_PAYMENT_COUNT(i), "1", "text")
+    const row = supplierRow(i)
+    await setSelectValue(tabId, row.currency, "CAD")
+    await setDateValue(tabId, row.bookingDate, paymentDate)
+    await setSelectValue(tabId, row.grossNet, "Gross", "text")
+    await setSelectValue(tabId, row.attachInvoice, "YES")
+    await setInputValue(tabId, row.baseAmount, 330.21)
+    await setInputValue(tabId, row.taxAmount, 0)
+    await setInputValue(tabId, row.commission, 50)
+    await setInputValue(tabId, row.totalAmount, 330.21)
+    await setSelectValue(tabId, row.paymentCount, "1", "text")
 
     // Inner Payment
     for (let j = 2; j < 2 + 1; j++) {
-      await setRadioChecked(tabId, BASE_PAYMENT_RADIO_SELECTION(i, j))
-      await setInputValue(tabId, BASE_PAYMENT_VALUE(i, j), 330.21)
-      await setSelectValue(tabId, BASE_SELECT_PAYMENT_CURRENCY(i, j), 'CAD')
-      await setInputValue(tabId, BASE_PAYMENT_DATE(i, j), paymentDate)
+      const pay = row.payment(j)
+      await setRadioChecked(tabId, pay.radio)
+      await setInputValue(tabId, pay.value, 330.21)
+      await setSelectValue(tabId, pay.currency, 'CAD')
+      await setInputValue(tabId, pay.date, paymentDate)
     }
   }
 
